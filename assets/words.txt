@@ -1,0 +1,12 @@
+kelime
+merhaba
+test
+oyun
+kedi
+araba
+masa
+kitap
+bilgisayar
+flutter
+riverpod
+objectbox
