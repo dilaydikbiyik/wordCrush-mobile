@@ -1,59 +1,172 @@
-# 🏁 Word Crush - TODO List
-**Teslim Tarihi:** 01.05.2026 
-**Ekip:** Dilay & Onur
+# 📋 TODO.md — Word Crush Gelişmiş Yol Haritası
 
 ---
 
-## 🧱 FAZ 1: Altyapı ve Katmanlı Mimari (Hemen)
-- [ ] **Riverpod State Yönetimi:** Skor, hamle ve grid senkronizasyonu için `StateNotifierProvider` kurulumu.
-- [x] **Klasör Yapılandırması:** `core`, `data`, `logic` ve `ui` katmanlarının oluşturulması.
-- [ ] **Dinamik Grid Modeli:** - [ ] `LetterModel` (x, y, char, isSelected) oluşturulması.
-    - [ ] Seviyeye göre (`6x6`, `8x8`, `10x10`) grid üretim logic'i.
-- [ ] **NLP Tabanlı Harf Üreticisi:** - [ ] Türkçe harf frekans haritası (`Map<String, double>`).
-    - [ ] Olasılık tabanlı "Weighted Random" dolum algoritması.
+## ⚠️⚠️⚠️ KRİTİK KURAL ⚠️⚠️⚠️
 
-## 🧠 FAZ 2: Hibrit Veri Yönetimi (Sözlük & Isar)
-- [ ] **Isar Database (Kalıcı Veri):**
-    - [ ] Isar paketlerinin kurulması ve `UserScore`, `Settings` koleksiyonlarının tanımlanması.
-    - [ ] Uygulama açılışında Isar servisinin başlatılması.
-- [ ] **Trie Yapısı (Yüksek Performans):**
-    - [ ] `TrieNode` ve `TrieService` sınıflarının yazılması.
-    - [ ] `words.txt` asset dosyasının açılışta RAM'e Trie olarak yüklenmesi.
-- [ ] **Arama & Combo Algoritması:**
-    - [ ] Trie üzerinden $O(L)$ hızında kelime ve prefix kontrolü.
-    - [ ] Recursive (özyinelemeli) alt kelime bulucu (Combo Logic).
+# **AGENT RULE: NEVER check off checkboxes (`- [x]`) without EXPLICIT user approval!**
 
-## 🕹️ FAZ 3: Oyun Mekaniği ve Swipe (Oynanış)
-- [ ] **Gesture & UI:**
-    - [ ] `GestureDetector` ile harf seçme ve sürükleme mekaniği.
-    - [ ] Seçilen harfler arasına dinamik çizgi çizen `CustomPainter`.
-- [ ] **Yerçekimi (Gravity):**
-    - [ ] Silinen harflerin yerine üsttekilerin düşmesi ve boşlukların yeni harflerle dolması.
-- [ ] **Oyun Akışı:**
-    - [ ] Hamle sayacı (15, 20, 25) ve "Oyun Bitti" kontrolü.
-
-## 📊 FAZ 4: Skorlama ve Gelişmiş Persistence
-- [ ] **Skor Motoru:** `Harf * 10 + (Her Combo * 5)` formülünün işletilmesi.
-- [ ] **Isar Persistence:** Rekor skorların ve oyun istatistiklerinin Isar NoSQL'e asenkron kaydedilmesi.
-- [ ] **UX & Görsellik:**
-    - [ ] Kelime patlama efektleri (Lottie veya Custom Animations).
-    - [ ] Akıcı ekran geçişleri.
-
-## 📝 FAZ 5: LaTeX Raporlama (KRİTİK!)
-- [ ] **IEEE Şablonu:** Overleaf üzerinde projenin başlatılması (Min. 4 sayfa).
-- [ ] **Teknik Analiz:**
-    - [ ] Hibrit mimarinin (Trie vs Isar) avantajlarının anlatılması.
-    - [ ] Harf frekans motorunun matematiksel olasılık analizi.
-- [ ] **Teslimat Paketi:** `.tex` kaynak dosyaları, resimler ve kaynak kodların ZIP haline getirilmesi.
-
-## 🚀 FAZ 6: Final Test ve Sunum
-- [ ] **iOS 19 Simulator:** M5 Pro üzerinde farklı iPhone modellerinde performans testi.
-- [ ] **Türkçe Karakter Fix:** `İ-I`, `Ş-S` gibi karakterlerin arama motorunda normalize edilmesi.
-- [ ] **Bireysel Sorumluluk:** Onur ile karşılıklı kod incelemesi ve sunum provası.
+### Bu kural ihlal edilemez. Bir görev tamamlandığında agent, kullanıcıya Türkçe olarak bilgi verir ve onay bekler. Kullanıcı "tamam" veya benzeri bir onay vermeden checkbox işaretlenemez.
 
 ---
 
-### ⚠️ ÖNEMLİ HATIRLATMALAR
-* **Sunum:** Sadece mobil emülatör/cihaz (Web/Desktop yasak!).
-* **Rapor:** Sadece LaTeX (Sadece PDF = 0 Puan! Kaynak kodlar/zip şart).
-* **Format:** IEEE formatı, minimum 4 sayfa.
+## Phase 1: Proje Başlatma & Altyapı
+- [ ] Flutter projesini oluştur (iOS hedef, `flutter create`)
+- [ ] `pubspec.yaml` — tüm bağımlılıkları ekle (INSTALL_LOG.md'ye kaydet)
+- [ ] `analysis_options.yaml` — strict linter kurallarını ayarla
+- [ ] `.gitignore` güncelle (build/, .dart_tool/, *.g.dart, objectbox vb.)
+- [ ] Klasör yapısını oluştur:
+  - [ ] `lib/core/`, `lib/data/models/`, `lib/data/services/`
+  - [ ] `lib/logic/algorithms/`, `lib/logic/scoring/`, `lib/logic/powers/`, `lib/logic/providers/`
+  - [ ] `lib/ui/screens/`, `lib/ui/widgets/`, `lib/ui/animations/`
+  - [ ] `assets/data/`, `assets/sounds/`, `assets/animations/`
+  - [ ] `test/`
+- [ ] Riverpod entegrasyonu (`ProviderScope` → `main.dart`)
+- [ ] ObjectBox ilk kurulumu (Store init + `path_provider`)
+- [ ] GoRouter temel route yapısı (tüm ekranlar için placeholder)
+- [ ] `docs/` klasörünü oluştur (ui_rules.md, state_rules.md, game_engine_rules.md)
+
+## Phase 2: Veri Katmanı
+- [ ] ObjectBox Entity: `PlayerProfile`
+  - [ ] Alanlar: id, username, goldBalance, createdAt
+- [ ] ObjectBox Entity: `GameRecord`
+  - [ ] Alanlar: id, gameNumber, date, gridSize, score, wordCount, longestWord, duration
+- [ ] ObjectBox Entity: `JokerInventory`
+  - [ ] Alanlar: id, jokerType, quantity
+- [ ] `ObjectBoxStore` — singleton service sınıfı
+- [ ] Türkçe kelime listesini `assets/data/turkish_words.txt`'ye ekle
+  - [ ] Kaynak: `CanNuhlar/Turkce-Kelime-Listesi` reposundan al
+- [ ] Trie veri yapısını implement et
+  - [ ] `TrieNode` sınıfı (children map, isEndOfWord)
+  - [ ] `Trie` sınıfı (insert, search, startsWith)
+- [ ] Asset'ten Trie'ye yükleme fonksiyonu (`rootBundle.loadString`)
+- [ ] Trie Riverpod Provider'ı (`FutureProvider`)
+
+## Phase 3: Oyun Motoru — Temel
+- [ ] `core/constants/` — tüm sabit dosyaları:
+  - [ ] `app_constants.dart` — grid boyutları, hamle limitleri, başlangıç altını
+  - [ ] `letter_scores.dart` — 29 harfin puan tablosu (Map)
+  - [ ] `letter_frequencies.dart` — 3 katmanlı Türkçe harf frekansları
+- [ ] `GridModel` — 2D `List<List<Cell>>` yapısı
+- [ ] `GridGenerator` — frekans tabanlı rastgele harf üretimi
+- [ ] 8 yönlü komşuluk hesaplama fonksiyonu (adjacency check)
+- [ ] Kelime doğrulama: seçilen path → string → Trie lookup
+- [ ] Minimum 3 harf kontrolü (2 harf → geçersiz)
+
+## Phase 4: Oyun Motoru — İleri Seviye
+- [ ] `GravityEngine`
+  - [ ] Patlatılan harfleri sil
+  - [ ] Üstteki harfleri aşağı düşür
+  - [ ] Boş hücrelere yeni harf üret (frekans tabanlı)
+- [ ] `ScoreCalculator`
+  - [ ] Harf bazlı puan hesaplama
+  - [ ] Toplam kelime puanı
+- [ ] `ComboEngine`
+  - [ ] Ana kelime içinde 3+ harfli alt kelime tespiti
+  - [ ] Harf sırası korunarak subsequence arama
+  - [ ] Alt kelime puanlama ve toplam puana ekleme
+  - [ ] Tekrar filtreleme
+- [ ] `GridSolver` — arka plan kelime tarama
+  - [ ] DFS + Trie prefix pruning algoritması
+  - [ ] `Flutter.compute()` / Isolate kullanımı (UI donmaması için)
+  - [ ] Kelime kalmama durumu tespiti
+  - [ ] Kurallı harf üretimi (kelime garantisi mekanizması)
+  - [ ] Otomatik karıştırma mekaniği
+  - [ ] Oluşturulabilir kelime sayısını hesaplama
+
+## Phase 5: Riverpod State Management
+- [ ] `GameStateProvider` — hamle sayısı, oyun aktif/bitti, grid boyutu, seviye
+- [ ] `GridProvider` — grid matrisi, seçili hücreler, harf güncelleme
+- [ ] `ScoreProvider` — anlık skor, combo çarpanı, toplam puan
+- [ ] `PlayerProvider` — kullanıcı adı, altın bakiyesi
+- [ ] `JokerProvider` — joker envanteri, aktif joker seçimi
+- [ ] `MarketProvider` — satın alma işlemleri, altın kontrolü
+- [ ] `TrieProvider` — sözlük erişimi (yüklenme durumu dahil)
+- [ ] `AudioProvider` — ses efektleri açma/kapama/çalma
+
+## Phase 6: UI/UX — Ekranlar
+- [ ] `SplashScreen`
+  - [ ] Sözlük yükleme progress göstergesi
+  - [ ] ObjectBox initialization
+- [ ] `LoginScreen`
+  - [ ] Kullanıcı adı girişi
+  - [ ] ObjectBox'a kaydetme
+  - [ ] Mevcut kullanıcı varsa otomatik giriş
+- [ ] `HomeScreen`
+  - [ ] 3 buton: Yeni Oyun, Skor Tablosu, Market
+  - [ ] Sol üst: kullanıcı adı (tıkla → değiştir dialogu)
+  - [ ] Altın göstergesi
+- [ ] `DifficultyScreen`
+  - [ ] 3 seçenek: 6×6 (Zor/15 hamle), 8×8 (Orta/20 hamle), 10×10 (Kolay/25 hamle)
+- [ ] `GameScreen`
+  - [ ] NxN grid widget (GestureDetector tabanlı)
+  - [ ] 8 yönlü sürükleme algılama (swipe detection)
+  - [ ] Üst bar: skor, kalan hamle, oluşturulabilir kelime sayısı
+  - [ ] Alt bar: joker butonları (satın alınmışsa aktif, değilse kilitli)
+  - [ ] Seçili harflerin görsel vurgulanması
+  - [ ] Geçerli kelime → yeşil feedback + puan animasyonu
+  - [ ] Geçersiz kelime → kırmızı feedback + sallama efekti
+  - [ ] Çıkış onay dialogu ("Çıkmak istediğinize emin misiniz?")
+  - [ ] Hamle bittiğinde otomatik oyun sonu → skor kaydetme
+- [ ] `ScoreScreen`
+  - [ ] Üst kısım: 6 istatistik özet kartı (toplam oyun, en yüksek puan, ortalama, vb.)
+  - [ ] Alt kısım: oyun kartları listesi (en son oynanan üstte)
+  - [ ] Her kartta: oyun no, tarih, grid, puan, kelime sayısı, en uzun kelime, süre
+- [ ] `MarketScreen`
+  - [ ] 6 joker kartı (simge, isim, fiyat, açıklama)
+  - [ ] Satın alma butonu + altın yeterliliği kontrolü
+  - [ ] Mevcut altın göstergesi (üst kısım)
+
+## Phase 7: Özel Güçler & Jokerler
+- [ ] `PowerType` enum (RowClear, AreaBlast, ColumnClear, MegaBlast)
+- [ ] `PowerExecutor`
+  - [ ] 4 harf → Satır Temizleme (tüm satırı sil)
+  - [ ] 5 harf → Alan Patlatma (komşu hücreleri sil)
+  - [ ] 6 harf → Sütun Temizleme (tüm sütunu sil)
+  - [ ] 7+ harf → Mega Patlatma (2 birim çevre sil)
+- [ ] Özel simge hücreleri (güç simgesi grid'e yerleştirme)
+- [ ] Güç aktivasyon mekaniği (simgeyi kelimede kullanma → tetikleme)
+- [ ] `JokerType` enum (6 joker)
+- [ ] `JokerExecutor`
+  - [ ] Balık: rastgele harfleri yok et
+  - [ ] Tekerlek: satır + sütun sil
+  - [ ] Lolipop Kırıcı: tek harf sil
+  - [ ] Serbest Değiştirme: iki harf yer değiştir
+  - [ ] Harf Karıştırma: grid shuffle
+  - [ ] Parti Güçlendiricisi: tümünü sil + yeniden doldur
+- [ ] Joker kullanımı sonrası gravity + solvability kontrolü
+
+## Phase 8: Animasyonlar, Ses & Polish
+- [ ] Lottie animasyon dosyaları bul/oluştur:
+  - [ ] Harf düşme (gravity) animasyonu
+  - [ ] Harf patlatma animasyonu
+  - [ ] Satır/sütun temizleme efekti
+  - [ ] Bomba/mega patlatma efekti
+  - [ ] Combo popup animasyonu
+- [ ] Ses efektleri entegrasyonu (`audioplayers`):
+  - [ ] Harf seçme sesi
+  - [ ] Geçerli kelime sesi
+  - [ ] Geçersiz kelime sesi
+  - [ ] Combo sesi
+  - [ ] Özel güç aktivasyon sesi
+  - [ ] Oyun sonu sesi
+- [ ] UI polish:
+  - [ ] Uygun renk paleti ve tema tasarımı
+  - [ ] Responsive layout (farklı iPhone boyutları)
+  - [ ] Loading state'leri ve skeleton ekranları
+  - [ ] Error handling UI (hata mesajları)
+
+## Phase 9: Test & Final
+- [ ] Unit test: Trie (insert, search, startsWith)
+- [ ] Unit test: GridGenerator (frekans dağılımı doğrulama)
+- [ ] Unit test: GridSolver (kelime bulma doğruluğu)
+- [ ] Unit test: ScoreCalculator (puan hesaplama)
+- [ ] Unit test: ComboEngine (alt kelime tespiti doğruluğu)
+- [ ] Integration test: Oyun akışı (başla → oyna → bitir → skor kaydet)
+- [ ] Performans testi: 10×10 grid solvability tarama süresi
+- [ ] Edge case: Grid'de kelime kalmama senaryoları
+- [ ] Edge case: Altın yetersiz durumu (market)
+- [ ] Edge case: Tüm jokerler kullanılmış durumu
+- [ ] Edge case: Kullanıcı adı boş / çok uzun
+- [ ] iOS emülatör üzerinde son test
+- [ ] Sunum hazırlığı
