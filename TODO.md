@@ -5,9 +5,8 @@
 ---
 
 ## 🧱 FAZ 1: Altyapı ve Katmanlı Mimari (Hemen)
-- [ ] **Riverpod State Yönetimi:** Skor, hamle ve grid senkronizasyonu için tek bir `GameProvider` kurulumu.
+- [ ] **Riverpod State Yönetimi:** Skor, hamle ve grid senkronizasyonu için `StateNotifierProvider` kurulumu.
 - [x] **Klasör Yapılandırması:** `core`, `data`, `logic` ve `ui` katmanlarının oluşturulması.
-- [x] **Sadeleşmiş Mimarî:** `logic` katmanında ayrı `usecase`/`repository` katmanı yerine tek merkezi oyun sağlayıcı (`game_provider.dart`) kullanılması.
 - [ ] **Dinamik Grid Modeli:** - [ ] `LetterModel` (x, y, char, isSelected) oluşturulması.
     - [ ] Seviyeye göre (`6x6`, `8x8`, `10x10`) grid üretim logic'i.
 - [ ] **NLP Tabanlı Harf Üreticisi:** - [ ] Türkçe harf frekans haritası (`Map<String, double>`).
@@ -23,8 +22,6 @@
 - [ ] **Arama & Combo Algoritması:**
     - [ ] Trie üzerinden $O(L)$ hızında kelime ve prefix kontrolü.
     - [ ] Recursive (özyinelemeli) alt kelime bulucu (Combo Logic).
-- [ ] **Türkçe Karakter Normalizasyonu:**
-    - [ ] `İ-I`, `Ş-S`, `Ç-C`, `Ü-U`, `Ö-O`, `Ğ-G` için arama ve eşleştirme.
 
 ## 🕹️ FAZ 3: Oyun Mekaniği ve Swipe (Oynanış)
 - [ ] **Gesture & UI:**
@@ -34,12 +31,6 @@
     - [ ] Silinen harflerin yerine üsttekilerin düşmesi ve boşlukların yeni harflerle dolması.
 - [ ] **Oyun Akışı:**
     - [ ] Hamle sayacı (15, 20, 25) ve "Oyun Bitti" kontrolü.
-- [ ] **Ekran Akışı ve Navigasyon:**
-    - [ ] Ana menü, oyun ekranı, skor ekranı, ayarlar ve oyun sonu ekranı tasarımı.
-    - [ ] Geçişler ve durum bazlı navigasyon akışının kurulması.
-- [ ] **Hata ve Edge-case Yönetimi:**
-    - [ ] Geçersiz, çok kısa veya sözlükte olmayan kelime geri bildirimleri.
-    - [ ] Boş grid, oyun bitişi, uygulama ön plana/arka plana geçişi senaryolarının ele alınması.
 
 ## 📊 FAZ 4: Skorlama ve Gelişmiş Persistence
 - [ ] **Skor Motoru:** `Harf * 10 + (Her Combo * 5)` formülünün işletilmesi.
@@ -47,12 +38,6 @@
 - [ ] **UX & Görsellik:**
     - [ ] Kelime patlama efektleri (Lottie veya Custom Animations).
     - [ ] Akıcı ekran geçişleri.
-- [ ] **Testler:**
-    - [ ] Unit testler: skor, grid, Trie, kelime doğrulama.
-    - [ ] Widget / integration testler: seçme, combo, oyun bitişi.
-- [ ] **Performans & Mobil Optimizasyon:**
-    - [ ] Animasyon frame drop kontrolü ve gereksiz rebuild azaltma.
-    - [ ] iOS/Android platforma özel `pubspec` ve yapı ayarlarının doğrulanması.
 
 ## 📝 FAZ 5: LaTeX Raporlama (KRİTİK!)
 - [ ] **IEEE Şablonu:** Overleaf üzerinde projenin başlatılması (Min. 4 sayfa).

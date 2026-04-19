@@ -1,0 +1,25 @@
+name: word_crush_mobile
+description: A Word Crush mobile game.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.4.0
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
+  path_provider: ^2.0.15
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.13
+  isar_generator: ^3.1.0+1
+
+flutter:
+  uses-material-design: true
