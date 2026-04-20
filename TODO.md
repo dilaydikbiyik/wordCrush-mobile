@@ -42,47 +42,47 @@
 - [x] Asset'ten Trie'ye yükleme fonksiyonu (`rootBundle.loadString`)
 - [x] Trie Riverpod Provider'ı (`FutureProvider`)
 
-## Phase 3: Oyun Motoru — Temel
+## Phase 3: Oyun Motoru — Temel ✅
 - [x] `core/constants/` — tüm sabit dosyaları:
   - [x] `app_constants.dart` — grid boyutları, hamle limitleri, başlangıç altını
   - [x] `letter_scores.dart` — 29 harfin puan tablosu (Map)
   - [x] `letter_frequencies.dart` — 3 katmanlı Türkçe harf frekansları
-- [ ] `GridModel` — 2D `List<List<Cell>>` yapısı
-- [ ] `GridGenerator` — frekans tabanlı rastgele harf üretimi
-- [ ] 8 yönlü komşuluk hesaplama fonksiyonu (adjacency check)
-- [ ] Kelime doğrulama: seçilen path → string → Trie lookup
-- [ ] Minimum 3 harf kontrolü (2 harf → geçersiz)
+- [x] `GridModel` — 2D `List<List<Cell>>` yapısı
+- [x] `GridGenerator` — frekans tabanlı rastgele harf üretimi
+- [x] 8 yönlü komşuluk hesaplama fonksiyonu (adjacency check)
+- [x] Kelime doğrulama: seçilen path → string → Trie lookup
+- [x] Minimum 3 harf kontrolü (2 harf → geçersiz)
 
-## Phase 4: Oyun Motoru — İleri Seviye
-- [ ] `GravityEngine`
-  - [ ] Patlatılan harfleri sil
-  - [ ] Üstteki harfleri aşağı düşür
-  - [ ] Boş hücrelere yeni harf üret (frekans tabanlı)
-- [ ] `ScoreCalculator`
-  - [ ] Harf bazlı puan hesaplama
-  - [ ] Toplam kelime puanı
-- [ ] `ComboEngine`
-  - [ ] Ana kelime içinde 3+ harfli alt kelime tespiti
-  - [ ] Harf sırası korunarak subsequence arama
-  - [ ] Alt kelime puanlama ve toplam puana ekleme
-  - [ ] Tekrar filtreleme
-- [ ] `GridSolver` — arka plan kelime tarama
-  - [ ] DFS + Trie prefix pruning algoritması
+## Phase 4: Oyun Motoru — İleri Seviye ✅
+- [x] `GravityEngine`
+  - [x] Patlatılan harfleri sil
+  - [x] Üstteki harfleri aşağı düşür
+  - [x] Boş hücrelere yeni harf üret (frekans tabanlı)
+- [x] `ScoreCalculator`
+  - [x] Harf bazlı puan hesaplama
+  - [x] Toplam kelime puanı
+- [x] `ComboEngine`
+  - [x] Ana kelime içinde 3+ harfli alt kelime tespiti
+  - [x] Harf sırası korunarak subsequence arama
+  - [x] Alt kelime puanlama ve toplam puana ekleme
+  - [x] Tekrar filtreleme
+- [x] `GridSolver` — arka plan kelime tarama
+  - [x] DFS + Trie prefix pruning algoritması
   - [ ] `Flutter.compute()` / Isolate kullanımı (UI donmaması için)
-  - [ ] Kelime kalmama durumu tespiti
-  - [ ] Kurallı harf üretimi (kelime garantisi mekanizması)
-  - [ ] Otomatik karıştırma mekaniği
-  - [ ] Oluşturulabilir kelime sayısını hesaplama
+  - [x] Kelime kalmama durumu tespiti
+  - [x] Kurallı harf üretimi (kelime garantisi mekanizması)
+  - [x] Otomatik karıştırma mekaniği
+  - [x] Oluşturulabilir kelime sayısını hesaplama
 
-## Phase 5: Riverpod State Management
-- [ ] `GameStateProvider` — hamle sayısı, oyun aktif/bitti, grid boyutu, seviye
-- [ ] `GridProvider` — grid matrisi, seçili hücreler, harf güncelleme
-- [ ] `ScoreProvider` — anlık skor, combo çarpanı, toplam puan
-- [ ] `PlayerProvider` — kullanıcı adı, altın bakiyesi
-- [ ] `JokerProvider` — joker envanteri, aktif joker seçimi
-- [ ] `MarketProvider` — satın alma işlemleri, altın kontrolü
+## Phase 5: Riverpod State Management ✅
+- [x] `GameStateProvider` — hamle sayısı, oyun aktif/bitti, grid boyutu, seviye
+- [x] `GridProvider` — grid matrisi, seçili hücreler, harf güncelleme
+- [x] `ScoreProvider` — anlık skor, combo çarpanı, toplam puan
+- [x] `PlayerProvider` — kullanıcı adı, altın bakiyesi
+- [x] `JokerProvider` — joker envanteri, aktif joker seçimi
+- [x] `MarketProvider` — satın alma işlemleri, altın kontrolü
 - [x] `TrieProvider` — sözlük erişimi (yüklenme durumu dahil)
-- [ ] `AudioProvider` — ses efektleri açma/kapama/çalma
+- [x] `AudioProvider` — ses efektleri açma/kapama/çalma
 
 ## Phase 6: UI/UX — Ekranlar
 - [ ] `SplashScreen`

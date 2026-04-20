@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../logic/providers/game_provider.dart';
+import '../../logic/providers/grid_provider.dart';
+import '../../logic/providers/score_provider.dart';
 import '../../router/app_router.dart';
 import '../widgets/grid_board.dart';
 
@@ -16,8 +18,9 @@ class GameScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(gameProvider);
-    final controller = ref.read(gameProvider.notifier);
+    final gameState = ref.watch(gameProvider);
+    final gridState = ref.watch(gridProvider);
+    final scoreState = ref.watch(scoreProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -31,17 +34,17 @@ class GameScreen extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Hamle: ${state.movesLeft}'),
-                Text('Skor: ${state.score}'),
+                Text('Hamle: ${gameState.movesLeft}'),
+                Text('Skor: ${scoreState.totalScore}'),
               ],
             ),
           ),
-          Expanded(child: GridBoard(grid: state.grid)),
+          Expanded(child: GridBoard(grid: gridState.grid)),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: controller.reset,
-              child: const Text('Yeniden Başlat'),
+            child: Text(
+              'Oluşturulabilir: ${gridState.formableWordCount} kelime',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ),
         ],
