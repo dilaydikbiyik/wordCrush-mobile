@@ -10,43 +10,43 @@
 
 ---
 
-## Phase 1: Proje Başlatma & Altyapı
-- [ ] Flutter projesini oluştur (iOS hedef, `flutter create`)
-- [ ] `pubspec.yaml` — tüm bağımlılıkları ekle (INSTALL_LOG.md'ye kaydet)
-- [ ] `analysis_options.yaml` — strict linter kurallarını ayarla
-- [ ] `.gitignore` güncelle (build/, .dart_tool/, *.g.dart, objectbox vb.)
-- [ ] Klasör yapısını oluştur:
-  - [ ] `lib/core/`, `lib/data/models/`, `lib/data/services/`
-  - [ ] `lib/logic/algorithms/`, `lib/logic/scoring/`, `lib/logic/powers/`, `lib/logic/providers/`
-  - [ ] `lib/ui/screens/`, `lib/ui/widgets/`, `lib/ui/animations/`
-  - [ ] `assets/data/`, `assets/sounds/`, `assets/animations/`
-  - [ ] `test/`
-- [ ] Riverpod entegrasyonu (`ProviderScope` → `main.dart`)
-- [ ] ObjectBox ilk kurulumu (Store init + `path_provider`)
-- [ ] GoRouter temel route yapısı (tüm ekranlar için placeholder)
-- [ ] `docs/` klasörünü oluştur (ui_rules.md, state_rules.md, game_engine_rules.md)
+## Phase 1: Proje Başlatma & Altyapı ✅
+- [x] Flutter projesini oluştur (iOS hedef, `flutter create`)
+- [x] `pubspec.yaml` — tüm bağımlılıkları ekle (INSTALL_LOG.md'ye kaydet)
+- [x] `analysis_options.yaml` — strict linter kurallarını ayarla
+- [x] `.gitignore` güncelle (build/, .dart_tool/, *.g.dart, objectbox vb.)
+- [x] Klasör yapısını oluştur:
+  - [x] `lib/core/`, `lib/data/models/`, `lib/data/services/`
+  - [x] `lib/logic/algorithms/`, `lib/logic/scoring/`, `lib/logic/powers/`, `lib/logic/providers/`
+  - [x] `lib/ui/screens/`, `lib/ui/widgets/`, `lib/ui/animations/`
+  - [x] `assets/data/`, `assets/sounds/`, `assets/animations/`
+  - [x] `test/`
+- [x] Riverpod entegrasyonu (`ProviderScope` → `main.dart`)
+- [x] ObjectBox ilk kurulumu (Store init + `path_provider`)
+- [x] GoRouter temel route yapısı (tüm ekranlar için placeholder)
+- [x] `docs/` klasörünü oluştur (ui_rules.md, state_rules.md, game_engine_rules.md)
 
-## Phase 2: Veri Katmanı
-- [ ] ObjectBox Entity: `PlayerProfile`
-  - [ ] Alanlar: id, username, goldBalance, createdAt
-- [ ] ObjectBox Entity: `GameRecord`
-  - [ ] Alanlar: id, gameNumber, date, gridSize, score, wordCount, longestWord, duration
-- [ ] ObjectBox Entity: `JokerInventory`
-  - [ ] Alanlar: id, jokerType, quantity
-- [ ] `ObjectBoxStore` — singleton service sınıfı
-- [ ] Türkçe kelime listesini `assets/data/turkish_words.txt`'ye ekle
-  - [ ] Kaynak: `CanNuhlar/Turkce-Kelime-Listesi` reposundan al
-- [ ] Trie veri yapısını implement et
-  - [ ] `TrieNode` sınıfı (children map, isEndOfWord)
-  - [ ] `Trie` sınıfı (insert, search, startsWith)
-- [ ] Asset'ten Trie'ye yükleme fonksiyonu (`rootBundle.loadString`)
-- [ ] Trie Riverpod Provider'ı (`FutureProvider`)
+## Phase 2: Veri Katmanı ✅
+- [x] ObjectBox Entity: `PlayerProfile`
+  - [x] Alanlar: id, username, goldBalance, createdAt
+- [x] ObjectBox Entity: `GameRecord`
+  - [x] Alanlar: id, gameNumber, date, gridSize, score, wordCount, longestWord, duration
+- [x] ObjectBox Entity: `JokerInventory`
+  - [x] Alanlar: id, jokerType, quantity
+- [x] `ObjectBoxStore` — singleton service sınıfı
+- [x] Türkçe kelime listesini `assets/data/turkish_words.txt`'ye ekle
+  - [x] Kaynak: `CanNuhlar/Turkce-Kelime-Listesi` reposundan al (59.828 kelime)
+- [x] Trie veri yapısını implement et
+  - [x] `TrieNode` sınıfı (children map, isEndOfWord)
+  - [x] `Trie` sınıfı (insert, search, startsWith)
+- [x] Asset'ten Trie'ye yükleme fonksiyonu (`rootBundle.loadString`)
+- [x] Trie Riverpod Provider'ı (`FutureProvider`)
 
 ## Phase 3: Oyun Motoru — Temel
-- [ ] `core/constants/` — tüm sabit dosyaları:
-  - [ ] `app_constants.dart` — grid boyutları, hamle limitleri, başlangıç altını
-  - [ ] `letter_scores.dart` — 29 harfin puan tablosu (Map)
-  - [ ] `letter_frequencies.dart` — 3 katmanlı Türkçe harf frekansları
+- [x] `core/constants/` — tüm sabit dosyaları:
+  - [x] `app_constants.dart` — grid boyutları, hamle limitleri, başlangıç altını
+  - [x] `letter_scores.dart` — 29 harfin puan tablosu (Map)
+  - [x] `letter_frequencies.dart` — 3 katmanlı Türkçe harf frekansları
 - [ ] `GridModel` — 2D `List<List<Cell>>` yapısı
 - [ ] `GridGenerator` — frekans tabanlı rastgele harf üretimi
 - [ ] 8 yönlü komşuluk hesaplama fonksiyonu (adjacency check)
@@ -81,7 +81,7 @@
 - [ ] `PlayerProvider` — kullanıcı adı, altın bakiyesi
 - [ ] `JokerProvider` — joker envanteri, aktif joker seçimi
 - [ ] `MarketProvider` — satın alma işlemleri, altın kontrolü
-- [ ] `TrieProvider` — sözlük erişimi (yüklenme durumu dahil)
+- [x] `TrieProvider` — sözlük erişimi (yüklenme durumu dahil)
 - [ ] `AudioProvider` — ses efektleri açma/kapama/çalma
 
 ## Phase 6: UI/UX — Ekranlar
@@ -157,7 +157,7 @@
   - [ ] Error handling UI (hata mesajları)
 
 ## Phase 9: Test & Final
-- [ ] Unit test: Trie (insert, search, startsWith)
+- [x] Unit test: Trie (insert, search, startsWith)
 - [ ] Unit test: GridGenerator (frekans dağılımı doğrulama)
 - [ ] Unit test: GridSolver (kelime bulma doğruluğu)
 - [ ] Unit test: ScoreCalculator (puan hesaplama)
