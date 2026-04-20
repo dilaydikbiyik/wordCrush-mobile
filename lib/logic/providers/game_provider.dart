@@ -31,20 +31,20 @@ class GameNotifier extends StateNotifier<GameState> {
   GameNotifier()
       : super(GameState(
           grid: GridGenerator().generateGrid(
-            AppConstants.initialGridSize,
+            AppConstants.easyGridSize,
             'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
           ),
-          movesLeft: AppConstants.maxMoves,
+          movesLeft: AppConstants.easyMaxMoves,
           score: 0,
         ));
 
   void reset() {
     state = GameState(
       grid: GridGenerator().generateGrid(
-        AppConstants.initialGridSize,
+        AppConstants.easyGridSize,
         'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
       ),
-      movesLeft: AppConstants.maxMoves,
+      movesLeft: AppConstants.easyMaxMoves,
       score: 0,
     );
   }

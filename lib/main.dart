@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'core/theme/app_theme.dart';
-import 'ui/screens/home_screen.dart';
+import 'router/app_router.dart';
 
 void main() {
   runApp(const ProviderScope(child: WordCrushApp()));
@@ -12,11 +11,10 @@ class WordCrushApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Word Crush',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      home: const HomeScreen(),
+      routerConfig: appRouter,
     );
   }
 }

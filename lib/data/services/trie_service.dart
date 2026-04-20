@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'package:flutter/services.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/utils/char_normalizer.dart';
 
 class TrieNode {
@@ -7,15 +7,20 @@ class TrieNode {
   bool isWord = false;
 }
 
+/// In-memory Trie loaded from [AppConstants.wordsAssetPath].
+///
+/// Words are stored in Turkish uppercase (e.g. 'ADANA', 'KALEMİ').
+/// This allows O(m) lookup and O(p) prefix pruning during grid solving.
 class TrieService {
   final TrieNode root = TrieNode();
 
+  /// Loads all words from asset, converts to Turkish uppercase, inserts into Trie.
   Future<void> loadWords() async {
-    final data = await rootBundle.loadString('assets/words.txt');
+    final data = await rootBundle.loadString(AppConstants.wordsAssetPath);
     final words = data
         .split('\n')
-        .map((word) => CharNormalizer.normalize(word.trim()))
-        .where((word) => word.isNotEmpty);
+        .map((w) => CharNormalizer.toTurkishUpper(w.trim()))
+        .where((w) => w.length >= AppConstants.minWordLength);
 
     for (final word in words) {
       insert(word);
@@ -25,11 +30,12 @@ class TrieService {
   void insert(String word) {
     var node = root;
     for (final char in word.split('')) {
-      node = node.children.putIfAbsent(char, () => TrieNode());
+      node = node.children.putIfAbsent(char, TrieNode.new);
     }
     node.isWord = true;
   }
 
+  /// Returns true if [word] (Turkish uppercase) is in the dictionary.
   bool contains(String word) {
     var node = root;
     for (final char in word.split('')) {
@@ -40,6 +46,7 @@ class TrieService {
     return node.isWord;
   }
 
+  /// Returns true if any word starts with [prefix] — used for DFS pruning.
   bool hasPrefix(String prefix) {
     var node = root;
     for (final char in prefix.split('')) {
