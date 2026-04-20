@@ -39,5 +39,20 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
+    # Disable code signing for all Pod targets on simulator builds.
+    # The host app's signature already covers embedded frameworks.
+    target.build_configurations.each do |config|
+      config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+      config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
+      config.build_settings['CODE_SIGN_IDENTITY'] = ''
+      config.build_settings['EXPANDED_CODE_SIGN_IDENTITY'] = ''
+    end
+  end
+
+  # Strip macOS extended attributes from all frameworks to satisfy codesign.
+  pods_root = installer.sandbox.root.to_s
+  Dir.glob(File.join(pods_root, '**', '*.framework')).each do |fw|
+    system("xattr -cr '#{fw}' 2>/dev/null")
   end
 end
