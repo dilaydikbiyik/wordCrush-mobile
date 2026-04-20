@@ -1,9 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'data/services/objectbox_service.dart';
+import 'logic/providers/game_provider.dart';
 import 'router/app_router.dart';
 
-void main() {
-  runApp(const ProviderScope(child: WordCrushApp()));
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize ObjectBox local database
+  final objectbox = ObjectBoxService();
+  await objectbox.init();
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        // Inject the initialized database into our Riverpod tree
+        objectBoxServiceProvider.overrideWithValue(objectbox),
+      ],
+      child: const WordCrushApp(),
+    ),
+  );
 }
 
 class WordCrushApp extends StatelessWidget {

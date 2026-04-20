@@ -1,0 +1,36 @@
+PODS:
+  - audioplayers_darwin (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - Flutter (1.0.0)
+  - ObjectBox (5.3.0-beta.4)
+  - objectbox_flutter_libs (0.0.1):
+    - Flutter
+    - ObjectBox (= 5.3.0-beta.4)
+
+DEPENDENCIES:
+  - audioplayers_darwin (from `.symlinks/plugins/audioplayers_darwin/darwin`)
+  - Flutter (from `Flutter`)
+  - objectbox_flutter_libs (from `.symlinks/plugins/objectbox_flutter_libs/ios`)
+
+SPEC REPOS:
+  trunk:
+    - ObjectBox
+
+EXTERNAL SOURCES:
+  audioplayers_darwin:
+    :path: ".symlinks/plugins/audioplayers_darwin/darwin"
+  Flutter:
+    :path: Flutter
+  objectbox_flutter_libs:
+    :path: ".symlinks/plugins/objectbox_flutter_libs/ios"
+
+SPEC CHECKSUMS:
+  audioplayers_darwin: 835ced6edd4c9fc8ebb0a7cc9e294a91d99917d5
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  ObjectBox: eccb95ea2054c39d81dfa2d4ccc5f1e31187228a
+  objectbox_flutter_libs: ed1510f71602e4a0d3f2a721324e468d066fdbb9
+
+PODFILE CHECKSUM: 53a6aebc29ccee84c41f92f409fc20cd4ca011f1
+
+COCOAPODS: 1.16.2
