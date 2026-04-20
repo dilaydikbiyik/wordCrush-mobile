@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/cell.dart';
 import '../../data/models/grid_model.dart';
+import '../../data/services/trie_service.dart';
 import '../algorithms/gravity_engine.dart';
 import '../algorithms/grid_generator.dart';
+import '../algorithms/grid_solver_isolate.dart';
 
 /// Immutable state for the game grid and cell selection.
 class GridState {
@@ -171,6 +173,25 @@ class GridNotifier extends StateNotifier<GridState> {
       selectedCells: [],
       currentWord: '',
     );
+  }
+
+  /// Scans the grid in a background isolate via [compute].
+  ///
+  /// Updates [formableWordCount] and, if no valid word exists, replaces the
+  /// grid with a solvable version — all without blocking the UI thread.
+  Future<void> scanAsync(TrieService trie) async {
+    final result = await scanGridAsync(state.grid, trie);
+
+    if (result.fixedLetters != null) {
+      state = state.copyWith(
+        grid: GridModel.fromLetters(result.fixedLetters!),
+        selectedCells: [],
+        currentWord: '',
+        formableWordCount: result.wordCount,
+      );
+    } else {
+      state = state.copyWith(formableWordCount: result.wordCount);
+    }
   }
 
   /// Updates the count of formable words (set after background grid scan).

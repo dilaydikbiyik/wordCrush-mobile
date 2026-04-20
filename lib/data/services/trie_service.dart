@@ -14,6 +14,12 @@ class TrieNode {
 class TrieService {
   final TrieNode root = TrieNode();
 
+  /// Raw word list kept for isolate transfer (passed to [compute] as serializable data).
+  final List<String> _wordList = [];
+
+  /// All loaded words — used to pass the dictionary to background isolates.
+  List<String> get wordList => List.unmodifiable(_wordList);
+
   /// Loads all words from asset, converts to Turkish uppercase, inserts into Trie.
   Future<void> loadWords() async {
     final data = await rootBundle.loadString(AppConstants.wordsAssetPath);
@@ -23,6 +29,7 @@ class TrieService {
         .where((w) => w.length >= AppConstants.minWordLength);
 
     for (final word in words) {
+      _wordList.add(word);
       insert(word);
     }
   }

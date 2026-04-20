@@ -16,6 +16,22 @@ class GridModel {
     required List<List<Cell>> cells,
   }) : _cells = cells;
 
+  /// Creates a GridModel from a 2D letter list — used to reconstruct grids
+  /// returned from background isolates.
+  factory GridModel.fromLetters(List<List<String>> letters) {
+    final size = letters.length;
+    final cells = List.generate(
+      size,
+      (r) => List.generate(
+        size,
+        (c) => letters[r][c].isEmpty
+            ? Cell.empty(row: r, col: c)
+            : Cell(row: r, col: c, letter: letters[r][c]),
+      ),
+    );
+    return GridModel(size: size, cells: cells);
+  }
+
   /// Creates an empty grid shell (all cells have empty letters).
   factory GridModel.empty(int size) {
     final cells = List.generate(
@@ -62,6 +78,12 @@ class GridModel {
     }
     return GridModel(size: size, cells: newCells);
   }
+
+  /// Serializes the grid to a 2D letter list for isolate transfer.
+  List<List<String>> toLetterGrid() => List.generate(
+        size,
+        (r) => List.generate(size, (c) => _cells[r][c].letter),
+      );
 
   // ---------------------------------------------------------------------------
   // Neighbor / adjacency

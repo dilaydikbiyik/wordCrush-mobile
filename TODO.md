@@ -68,7 +68,7 @@
   - [x] Tekrar filtreleme
 - [x] `GridSolver` — arka plan kelime tarama
   - [x] DFS + Trie prefix pruning algoritması
-  - [ ] `Flutter.compute()` / Isolate kullanımı (UI donmaması için)
+  - [x] `Flutter.compute()` / Isolate kullanımı (UI donmaması için)
   - [x] Kelime kalmama durumu tespiti
   - [x] Kurallı harf üretimi (kelime garantisi mekanizması)
   - [x] Otomatik karıştırma mekaniği
