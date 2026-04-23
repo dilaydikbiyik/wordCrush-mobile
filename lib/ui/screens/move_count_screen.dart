@@ -11,7 +11,7 @@ class MoveCountScreen extends ConsumerWidget {
 
   void _selectMoveCount(BuildContext context, WidgetRef ref, int moveCount) {
     ref.read(gameProvider.notifier).startNewGame(gridSize, moveCount);
-    context.go(AppRoutes.game);
+    context.push(AppRoutes.game);
   }
 
   @override

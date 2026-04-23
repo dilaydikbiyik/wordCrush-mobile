@@ -89,7 +89,7 @@ class HomeScreen extends ConsumerWidget {
               left: size.width * 0.1,
               right: size.width * 0.1,
               child: GestureDetector(
-                onTap: () => context.go(AppRoutes.gridSize),
+                onTap: () => context.push(AppRoutes.gridSize),
                 child: Container(
                   height: 120,
                   color: Colors.transparent,
@@ -103,7 +103,7 @@ class HomeScreen extends ConsumerWidget {
               left: size.width * 0.1,
               right: size.width * 0.1,
               child: GestureDetector(
-                onTap: () => context.go(AppRoutes.score),
+                onTap: () => context.push(AppRoutes.score),
                 child: Container(
                   height: 122,
                   color: Colors.transparent,
@@ -117,7 +117,7 @@ class HomeScreen extends ConsumerWidget {
               left: size.width * 0.1,
               right: size.width * 0.1,
               child: GestureDetector(
-                onTap: () => context.go(AppRoutes.market),
+                onTap: () => context.push(AppRoutes.market),
                 child: Container(
                   height: 120,
                   color: Colors.transparent,
