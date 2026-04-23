@@ -2,17 +2,18 @@ import 'package:go_router/go_router.dart';
 import '../ui/screens/splash_screen.dart';
 import '../ui/screens/login_screen.dart';
 import '../ui/screens/home_screen.dart';
-import '../ui/screens/difficulty_screen.dart';
+import '../ui/screens/grid_size_screen.dart';
+import '../ui/screens/move_count_screen.dart';
 import '../ui/screens/game_screen.dart';
 import '../ui/screens/score_screen.dart';
 import '../ui/screens/market_screen.dart';
 
-/// Named route paths — use these constants instead of raw strings.
 class AppRoutes {
   static const String splash = '/splash';
   static const String login = '/login';
   static const String home = '/home';
-  static const String difficulty = '/difficulty';
+  static const String gridSize = '/grid-size';
+  static const String moveCount = '/move-count';
   static const String game = '/game';
   static const String score = '/score';
   static const String market = '/market';
@@ -34,8 +35,12 @@ final appRouter = GoRouter(
       builder: (context, state) => const HomeScreen(),
     ),
     GoRoute(
-      path: AppRoutes.difficulty,
-      builder: (context, state) => const DifficultyScreen(),
+      path: AppRoutes.gridSize,
+      builder: (context, state) => const GridSizeScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.moveCount,
+      builder: (context, state) => const MoveCountScreen(),
     ),
     GoRoute(
       path: AppRoutes.game,
