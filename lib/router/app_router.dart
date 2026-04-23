@@ -40,7 +40,9 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.moveCount,
-      builder: (context, state) => const MoveCountScreen(),
+      builder: (context, state) => MoveCountScreen(
+        gridSize: state.extra as int? ?? 10,
+      ),
     ),
     GoRoute(
       path: AppRoutes.game,
