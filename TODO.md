@@ -89,6 +89,54 @@
 - [x] `TrieProvider` — sözlük erişimi (yüklenme durumu dahil)
 - [x] `AudioProvider` — ses efektleri açma/kapama/çalma
 
+## 🔄 Devam Eden Çalışma (Context Clear Sonrası Buradan Devam Et)
+
+### Tamamlanan Ekranlar (Phase 6 — Onay Bekliyor)
+Aşağıdaki ekranlar YAZILDI ve simülatörde çalışıyor. Kullanıcı onayı gelince checkboxlar işaretlenecek:
+- SplashScreen ✅ — `splash_bg.png` + görsel loading bar (2.2s AnimationController)
+- LoginScreen ✅ — `login_bg.png` + TextField + playerProvider.createProfile()
+- HomeScreen ✅ — `home_bg.png` + username + 3 buton (push navigation)
+- GridSizeScreen ✅ — `grid_size_bg.png` + 3 seçim (context.push extra: gridSize)
+- MoveCountScreen ✅ — `move_count_bg.png` + gameProvider.startNewGame()
+- MarketScreen ✅ — `market_bg.png` + 6 joker butonu + altın kontrolü
+- GameScreen ✅ — `game_bg.png` + tam implementasyon (pan gesture, trie, skor, shake)
+
+### Sıradaki Görev: GameScreen Pozisyon Hizalaması
+GameScreen yazıldı ama pozisyon değerleri henüz hizalanmadı. Şu adımlar takip edilecek:
+1. `_InfoBox` widget'larını (skor/hamle/kelime) kırmızı container ile göster, `game_bg.png`'deki 3 kutuya hizala
+2. Grid alanını (`Positioned` top/left/right/height) kırmızı ile göster, kağıt alana hizala
+3. `_JokerBtn` row'unu kırmızı ile göster, 6 joker yuvasına hizala
+4. Hizalama tamam → `Colors.transparent` yap → commit
+
+Hizalama için `game_screen.dart`'taki `Positioned` değerleri:
+- Üst bar: `top: size.height * 0.045` (skor sol, hamle orta, kelime sağ)
+- Grid: `top: size.height * 0.145, height: size.width * 0.94`
+- Jokerler: `bottom: size.height * 0.03`
+
+### Açık Buglar & Kontrol Edilecekler
+- [ ] **Grid shake bug**: Geçersiz kelime sonrası sallama animasyonu tamamlanınca grid eski konumuna oturmuyor
+- [ ] **Çıkış butonu**: Bazen tıklamayı algılamıyor; ikon/buton alanı küçük olabilir, tasarım değiştirilebilir
+- [x] **Joker veritabanı & senkronizasyon**: `loadInventory()` SplashScreen'de hiç çağrılmıyordu — uygulama her açılışta envanter boş başlıyordu. `splash_screen.dart`'a eklendi, düzeltildi.
+- [ ] **Joker butonları tıklama bağlantısı eksik**: `_JokerBtn`'larda `onTap` yok, `JokerExecutor` GameScreen'e hiç bağlanmamış — jokerler görsel var ama işlev yapmıyor
+- [ ] **Solvability check hiç çağrılmıyor**: `GridProvider.scanAsync()` her hamle sonrası tetiklenmesi gerekirken GameScreen'den hiç çağrılmıyor — grid çözümsüz kalabilir, auto-shuffle devreye girmiyor
+- [ ] **Harf düşme animasyonu**: Kelime patlatılınca üstteki harfler aşağı kayarken animasyon yok — `GravityEngine` sonrası her hücre için aşağı kayma animasyonu eklenecek
+- [ ] **Patlama animasyonu**: Geçerli kelime seçilince hücreler kaybolmadan önce patlama/silme efekti eklenecek (Lottie veya Flutter animasyonu)
+
+### Sıradaki Ekran: ScoreScreen
+- `score_bg.png` sadece kırmızı doku/texture (içinde UI yok)
+- Tüm içerik Flutter widget: bej container + siyah border kart stili
+- Üst: 6 istatistik kartı (toplam oyun, en yüksek skor, toplam kelime, ort. skor, en uzun kelime, toplam hamle)
+- Alt: `ListView.builder` — her kart: oyun no, tarih, grid, skor, kelime sayısı, en uzun kelime
+- `GameRecord` listesi ObjectBox'tan `gameProvider` veya yeni `scoreListProvider` ile çekilecek
+- Kart font: `Courier` / monospace typewriter stili
+
+### Navigation Mimarisi (Tüm Ekranlarda Geçerli)
+- `context.go()` → Splash→Home, GameOver→Home (geçmiş silinir)
+- `context.push()` → Home→GridSize→MoveCount→Game, Home→Score, Home→Market (geri swipe çalışır)
+- PopScope → Game ekranında back button yakalar → exit dialog
+
+---
+
 ## Phase 6: UI/UX — Ekranlar
 
 ### Asset Listesi (`assets/images/`)

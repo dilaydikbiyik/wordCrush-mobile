@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../logic/providers/joker_provider.dart';
 import '../../logic/providers/player_provider.dart';
-import '../../logic/providers/trie_provider.dart';
 import '../../router/app_router.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -42,6 +42,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _navigate() {
     if (!mounted) return;
     ref.read(playerProvider.notifier).loadProfile();
+    ref.read(jokerProvider.notifier).loadInventory();
     final player = ref.read(playerProvider);
     if (player.isLoaded && player.username.isNotEmpty) {
       context.go(AppRoutes.home);
