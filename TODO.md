@@ -89,31 +89,8 @@
 - [x] `TrieProvider` — sözlük erişimi (yüklenme durumu dahil)
 - [x] `AudioProvider` — ses efektleri açma/kapama/çalma
 
-## 🔄 Devam Eden Çalışma (Context Clear Sonrası Buradan Devam Et)
-
-### Tamamlanan Ekranlar (Phase 6 — Onay Bekliyor)
-Aşağıdaki ekranlar YAZILDI ve simülatörde çalışıyor. Kullanıcı onayı gelince checkboxlar işaretlenecek:
-- SplashScreen ✅ — `splash_bg.png` + görsel loading bar (2.2s AnimationController)
-- LoginScreen ✅ — `login_bg.png` + TextField + playerProvider.createProfile()
-- HomeScreen ✅ — `home_bg.png` + username + 3 buton (push navigation)
-- GridSizeScreen ✅ — `grid_size_bg.png` + 3 seçim (context.push extra: gridSize)
-- MoveCountScreen ✅ — `move_count_bg.png` + gameProvider.startNewGame()
-- MarketScreen ✅ — `market_bg.png` + 6 joker butonu + altın kontrolü
-- GameScreen ✅ — `game_bg.png` + tam implementasyon (pan gesture, trie, skor, shake)
-
-### Sıradaki Görev: GameScreen Pozisyon Hizalaması
-GameScreen yazıldı ama pozisyon değerleri henüz hizalanmadı. Şu adımlar takip edilecek:
-1. `_InfoBox` widget'larını (skor/hamle/kelime) kırmızı container ile göster, `game_bg.png`'deki 3 kutuya hizala
-2. Grid alanını (`Positioned` top/left/right/height) kırmızı ile göster, kağıt alana hizala
-3. `_JokerBtn` row'unu kırmızı ile göster, 6 joker yuvasına hizala
-4. Hizalama tamam → `Colors.transparent` yap → commit
-
-Hizalama için `game_screen.dart`'taki `Positioned` değerleri:
-- Üst bar: `top: size.height * 0.045` (skor sol, hamle orta, kelime sağ)
-- Grid: `top: size.height * 0.145, height: size.width * 0.94`
-- Jokerler: `bottom: size.height * 0.03`
-
 ### Açık Buglar & Kontrol Edilecekler
+
 - [ ] **Grid shake bug**: Geçersiz kelime sonrası sallama animasyonu tamamlanınca grid eski konumuna oturmuyor
 - [ ] **Çıkış butonu**: Bazen tıklamayı algılamıyor; ikon/buton alanı küçük olabilir, tasarım değiştirilebilir
 - [x] **Joker veritabanı & senkronizasyon**: `loadInventory()` SplashScreen'de hiç çağrılmıyordu — uygulama her açılışta envanter boş başlıyordu. `splash_screen.dart`'a eklendi, düzeltildi.
@@ -123,6 +100,7 @@ Hizalama için `game_screen.dart`'taki `Positioned` değerleri:
 - [ ] **Patlama animasyonu**: Geçerli kelime seçilince hücreler kaybolmadan önce patlama/silme efekti eklenecek (Lottie veya Flutter animasyonu)
 
 ### Sıradaki Ekran: ScoreScreen
+
 - `score_bg.png` sadece kırmızı doku/texture (içinde UI yok)
 - Tüm içerik Flutter widget: bej container + siyah border kart stili
 - Üst: 6 istatistik kartı (toplam oyun, en yüksek skor, toplam kelime, ort. skor, en uzun kelime, toplam hamle)
@@ -131,6 +109,7 @@ Hizalama için `game_screen.dart`'taki `Positioned` değerleri:
 - Kart font: `Courier` / monospace typewriter stili
 
 ### Navigation Mimarisi (Tüm Ekranlarda Geçerli)
+
 - `context.go()` → Splash→Home, GameOver→Home (geçmiş silinir)
 - `context.push()` → Home→GridSize→MoveCount→Game, Home→Score, Home→Market (geri swipe çalışır)
 - PopScope → Game ekranında back button yakalar → exit dialog
@@ -140,73 +119,74 @@ Hizalama için `game_screen.dart`'taki `Positioned` değerleri:
 ## Phase 6: UI/UX — Ekranlar
 
 ### Asset Listesi (`assets/images/`)
-- [ ] `splash_bg.png` — SplashScreen arka planı
-- [ ] `login_bg.png` — LoginScreen arka planı (input alanı boş)
-- [ ] `home_bg.png` — HomeScreen arka planı (username kutusu boş)
-- [ ] `grid_size_bg.png` — GridSizeScreen arka planı
-- [ ] `move_count_bg.png` — MoveCountScreen arka planı
-- [ ] `game_bg.png` — GameScreen arka planı (üst 3 kutu + kağıt grid alanı + 6 gri joker yuvası)
+
+- [x] `splash_bg.png` — SplashScreen arka planı
+- [x] `login_bg.png` — LoginScreen arka planı (input alanı boş)
+- [x] `home_bg.png` — HomeScreen arka planı (username kutusu boş)
+- [x] `grid_size_bg.png` — GridSizeScreen arka planı
+- [x] `move_count_bg.png` — MoveCountScreen arka planı
+- [x] `game_bg.png` — GameScreen arka planı (üst 3 kutu + kağıt grid alanı + 6 gri joker yuvası)
 - [ ] `score_bg.png` — ScoreScreen arka planı (sadece kırmızı doku, UI yok)
-- [ ] `market_bg.png` — MarketScreen arka planı (bakiye/fiyat kutuları boş)
+- [x] `market_bg.png` — MarketScreen arka planı (bakiye/fiyat kutuları boş)
 
 ### Ekranlar
 
-- [ ] `SplashScreen`
-  - [ ] Asset: `splash_bg.png` arka plana ekle
-  - [ ] Sözlük yükleme progress göstergesi
-  - [ ] ObjectBox initialization
-- [ ] `LoginScreen`
-  - [ ] Asset: `login_bg.png` arka plana ekle
-  - [ ] TextField PNG'deki boş input alanına hizala
-  - [ ] Kullanıcı adı girişi
-  - [ ] ObjectBox'a kaydetme
-  - [ ] Mevcut kullanıcı varsa otomatik giriş
-- [ ] `HomeScreen`
-  - [ ] Asset: `home_bg.png` arka plana ekle
-  - [ ] Username widget'ını PNG'deki torn paper kutusuna hizala (altın göstergesi yok)
-  - [ ] 3 buton: Yeni Oyun, Skor Tablosu, Market
-  - [ ] Sol üst: kullanıcı adı (tıkla → değiştir dialogu)
-- [ ] `GridSizeScreen`
-  - [ ] Asset: `grid_size_bg.png` arka plana ekle
-  - [ ] 3 kart: 6×6 (Zor), 8×8 (Orta), 10×10 (Kolay)
-  - [ ] Seçilen grid boyutunu GameStateProvider'a kaydet
-  - [ ] Router: AppRoutes.gridSize rotası ekle
-- [ ] `MoveCountScreen`
-  - [ ] Asset: `move_count_bg.png` arka plana ekle
-  - [ ] 3 kart: 15 Hamle (Zor), 20 Hamle (Orta), 25 Hamle (Kolay)
-  - [ ] Seçilen hamle sayısını GameStateProvider'a kaydet
-  - [ ] Router: AppRoutes.moveCount rotası ekle
-  - [ ] Akış: HomeScreen → GridSizeScreen → MoveCountScreen → GameScreen
-- [ ] `GameScreen`
-  - [ ] Asset: `game_bg.png` Stack ile arka plana ekle
-  - [ ] Üst bar: PNG'deki 3 kutuya skor / kalan hamle / kelime sayısı Flutter widget hizala
-  - [ ] NxN grid widget (GestureDetector tabanlı) PNG'deki kağıt alana bindirme
-  - [ ] Grid boyutunu GameStateProvider'dan oku (6, 8 veya 10)
-  - [ ] 8 yönlü sürükleme algılama (swipe detection)
-  - [ ] Alt bar: 6 joker butonu PNG yuvalarına Flutter widget hizala
-  - [ ] Joker aktifse renkli, yoksa gri (Flutter tarafında kontrol)
-  - [ ] Seçili harflerin görsel vurgulanması
-  - [ ] Geçerli kelime → yeşil feedback + puan animasyonu
-  - [ ] Geçersiz kelime → kırmızı feedback + sallama efekti
-  - [ ] Çıkış onay dialogu ("Çıkmak istediğinize emin misiniz?")
-  - [ ] Hamle bittiğinde otomatik oyun sonu → skor kaydetme
+- [x] `SplashScreen`
+  - [x] Asset: `splash_bg.png` arka plana ekle
+  - [x] Sözlük yükleme progress göstergesi
+  - [x] ObjectBox initialization
+- [x] `LoginScreen`
+  - [x] Asset: `login_bg.png` arka plana ekle
+  - [x] TextField PNG'deki boş input alanına hizala
+  - [x] Kullanıcı adı girişi
+  - [x] ObjectBox'a kaydetme
+  - [x] Mevcut kullanıcı varsa otomatik giriş
+- [x] `HomeScreen`
+  - [x] Asset: `home_bg.png` arka plana ekle
+  - [x] Username widget'ını PNG'deki torn paper kutusuna hizala (altın göstergesi yok)
+  - [x] 3 buton: Yeni Oyun, Skor Tablosu, Market
+  - [x] Sol üst: kullanıcı adı (tıkla → değiştir dialogu)
+- [x] `GridSizeScreen`
+  - [x] Asset: `grid_size_bg.png` arka plana ekle
+  - [x] 3 kart: 6×6 (Zor), 8×8 (Orta), 10×10 (Kolay)
+  - [x] Seçilen grid boyutunu GameStateProvider'a kaydet
+  - [x] Router: AppRoutes.gridSize rotası ekle
+- [x] `MoveCountScreen`
+  - [x] Asset: `move_count_bg.png` arka plana ekle
+  - [x] 3 kart: 15 Hamle (Zor), 20 Hamle (Orta), 25 Hamle (Kolay)
+  - [x] Seçilen hamle sayısını GameStateProvider'a kaydet
+  - [x] Router: AppRoutes.moveCount rotası ekle
+  - [x] Akış: HomeScreen → GridSizeScreen → MoveCountScreen → GameScreen
+- [x] `GameScreen`
+  - [x] Asset: `game_bg.png` Stack ile arka plana ekle
+  - [x] Üst bar: PNG'deki 3 kutuya skor / kalan hamle / kelime sayısı Flutter widget hizala
+  - [x] NxN grid widget (GestureDetector tabanlı) PNG'deki kağıt alana bindirme
+  - [x] Grid boyutunu GameStateProvider'dan oku (6, 8 veya 10)
+  - [x] 8 yönlü sürükleme algılama (swipe detection)
+  - [x] Alt bar: 6 joker butonu PNG yuvalarına Flutter widget hizala
+  - [x] Joker aktifse renkli, yoksa gri (Flutter tarafında kontrol)
+  - [x] Seçili harflerin görsel vurgulanması
+  - [x] Geçerli kelime → yeşil feedback + puan animasyonu
+  - [x] Geçersiz kelime → kırmızı feedback + sallama efekti
+  - [x] Çıkış onay dialogu ("Çıkmak istediğinize emin misiniz?")
+  - [x] Hamle bittiğinde otomatik oyun sonu → skor kaydetme
 - [ ] `ScoreScreen`
   - [ ] Asset: `score_bg.png` arka plana ekle (sadece kırmızı doku)
   - [ ] Üst kısım: 6 istatistik kartı Flutter widget (bej container + siyah border)
   - [ ] Alt kısım: ListView.builder ile oyun kartları (en son oynanan üstte)
   - [ ] Her kartta: oyun no, tarih, grid, puan, kelime sayısı, en uzun kelime, süre
   - [ ] Kart stili: bej/kağıt renkli container, siyah border, Courier/typewriter font
-- [ ] `MarketScreen`
-  - [ ] Asset: `market_bg.png` arka plana ekle
-  - [ ] 6 joker kartı — isim ve açıklamalar:
+- [x] `MarketScreen`
+  - [x] Asset: `market_bg.png` arka plana ekle
+  - [x] 6 joker kartı — isim ve açıklamalar:
     - Balık: "Rastgele harfleri yok eder"
     - Tekerlek: "Seçilen harfin satır ve sütununu temizler"
     - Lolipop: "Seçilen tek harfi yok eder"
     - Değiştir: "Birbirine değen iki harfi yer değiştirir"
     - Karıştır: "Gridteki tüm harfleri karıştırır"
     - Parti: "Tüm harfleri yok eder, yenileri yukarıdan düşer"
-  - [ ] Satın alma butonu + altın yeterliliği kontrolü (Flutter widget)
-  - [ ] Mevcut altın göstergesi (üst kısım, Flutter widget)
+  - [x] Satın alma butonu + altın yeterliliği kontrolü (Flutter widget)
+  - [x] Mevcut altın göstergesi (üst kısım, Flutter widget)
   - [ ] (OPSİYONEL) Karta tıklayınca detay ekranı aç (joker açıklaması + satın al butonu)
   - [ ] (OPSİYONEL) Joker kullanım animasyonu (Lottie)
 
