@@ -43,82 +43,93 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      body: SizedBox(
-        width: size.width,
-        height: size.height,
-        child: Stack(
-          children: [
-            Image.asset(
-              'assets/images/login_bg.png',
-              fit: BoxFit.fill,
-              width: size.width,
-              height: size.height,
-            ),
+      body: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 1000),
+        curve: Curves.easeIn,
+        builder: (context, opacity, child) {
+          return Opacity(
+            opacity: opacity,
+            child: child,
+          );
+        },
+        child: SizedBox(
+          width: size.width,
+          height: size.height,
+          child: Stack(
+            children: [
+              Image.asset(
+                'assets/images/login_bg.png',
+                fit: BoxFit.fill,
+                width: size.width,
+                height: size.height,
+              ),
 
-            // TextField — PNG'deki boş input alanına hizalı
-            Positioned(
-              top: size.height * 0.505,
-              left: size.width * 0.13,
-              right: size.width * 0.12,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: _controller,
-                    onSubmitted: (_) => _submit(),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Kullanıcı adınızı girin',
-                      hintStyle: const TextStyle(
-                        color: Colors.black38,
-                        fontSize: 15,
+              // TextField — PNG'deki boş input alanına hizalı
+              Positioned(
+                top: size.height * 0.505,
+                left: size.width * 0.13,
+                right: size.width * 0.12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _controller,
+                      onSubmitted: (_) => _submit(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600,
                       ),
-                      filled: true,
-                      fillColor: Colors.transparent,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                    ),
-                  ),
-                  if (_errorText != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4, left: 12),
-                      child: Text(
-                        _errorText!,
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                      decoration: const InputDecoration(
+                        hintText: 'Kullanıcı adınızı girin',
+                        hintStyle: TextStyle(
+                          color: Colors.black38,
+                          fontSize: 15,
+                        ),
+                        filled: true,
+                        fillColor: Colors.transparent,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
                         ),
                       ),
                     ),
-                ],
-              ),
-            ),
-
-            // Başla butonu — PNG'deki buton alanına hizalı
-            Positioned(
-              top: size.height * 0.60,
-              left: size.width * 0.21,
-              right: size.width * 0.16,
-              child: GestureDetector(
-                onTap: _submit,
-                child: Container(
-                  height: 80,
-                  color: Colors.transparent,
+                    if (_errorText != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 12),
+                        child: Text(
+                          _errorText!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-            ),
-          ],
+
+              // Başla butonu — PNG'deki buton alanına hizalı
+              Positioned(
+                top: size.height * 0.60,
+                left: size.width * 0.21,
+                right: size.width * 0.16,
+                child: GestureDetector(
+                  onTap: _submit,
+                  child: Container(
+                    height: 80,
+                    color: Colors.transparent,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

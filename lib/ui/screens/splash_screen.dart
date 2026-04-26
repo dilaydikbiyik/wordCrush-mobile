@@ -56,51 +56,61 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      body: SizedBox(
-        width: size.width,
-        height: size.height,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              'assets/images/splash_bg.png',
-              fit: BoxFit.fill,
-              width: size.width,
-              height: size.height,
-            ),
-            Positioned(
-              top: size.height * 0.621,
-              left: 0,
-              right: 5,
-              child: Center(
-                child: AnimatedBuilder(
-                  animation: _fillAnim,
-                  builder: (context, _) => Container(
-                    width: 155,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.black, width: 2),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: LinearProgressIndicator(
-                        value: _fillAnim.value,
-                        backgroundColor: Colors.black.withAlpha(20),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Color(0xFFFF6B35),
+      body: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 1500),
+        curve: Curves.easeIn,
+        builder: (context, opacity, child) {
+          return Opacity(
+            opacity: opacity,
+            child: child,
+          );
+        },
+        child: SizedBox(
+          width: size.width,
+          height: size.height,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(
+                'assets/images/splash_bg.png',
+                fit: BoxFit.fill,
+                width: size.width,
+                height: size.height,
+              ),
+              Positioned(
+                top: size.height * 0.621,
+                left: 0,
+                right: 5,
+                child: Center(
+                  child: AnimatedBuilder(
+                    animation: _fillAnim,
+                    builder: (context, _) => Container(
+                      width: 155,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: Colors.black, width: 2),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: LinearProgressIndicator(
+                          value: _fillAnim.value,
+                          backgroundColor: Colors.black.withAlpha(20),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color(0xFFFF6B35),
+                          ),
+                          minHeight: 36,
                         ),
-                        minHeight: 36,
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
-

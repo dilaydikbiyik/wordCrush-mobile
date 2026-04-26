@@ -55,6 +55,11 @@ class _GameScreenState extends ConsumerState<GameScreen>
     'assets/images/joker_party.png',
   ];
 
+  // Animation states
+  List<Cell> _explodingCells = [];
+  Offset? _lollipopSlamPos;
+  double _lollipopSlamSize = 0;
+
   @override
   void initState() {
     super.initState();
@@ -146,7 +151,15 @@ class _GameScreenState extends ConsumerState<GameScreen>
       ref.read(scoreProvider.notifier).addWordScore(score, combos);
       ref.read(gameProvider.notifier).recordWord(word);
       ref.read(gameProvider.notifier).decrementMove();
-      ref.read(gridProvider.notifier).removeAndRefill(gridState.selectedCells);
+      
+      final destroyed = ref.read(gridProvider.notifier).removeAndRefill(gridState.selectedCells);
+      
+      if (destroyed.isNotEmpty) {
+        setState(() => _explodingCells = destroyed);
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) setState(() => _explodingCells = []);
+        });
+      }
 
       setState(() => _lastScore = score);
       _flashGreen();
@@ -255,6 +268,23 @@ class _GameScreenState extends ConsumerState<GameScreen>
   void _executeJoker(String jokerType, Cell? target, Cell? second) {
     final grid = ref.read(gridProvider).grid;
     final executor = JokerExecutor();
+
+    // Setup Lollipop Slam Animation
+    if (jokerType == JokerType.lollipop && target != null) {
+      final box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box != null) {
+        final cellW = box.size.width / grid.size;
+        final cellH = box.size.height / grid.size;
+        setState(() {
+          _lollipopSlamPos = Offset(target.col * cellW, target.row * cellH);
+          _lollipopSlamSize = cellW;
+        });
+        Future.delayed(const Duration(milliseconds: 600), () {
+          if (mounted) setState(() => _lollipopSlamPos = null);
+        });
+      }
+    }
+
     final newGrid = executor.execute(
       jokerType: jokerType,
       grid: grid,
@@ -413,6 +443,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
                           child: _GridWidget(
                             gridState: gridState,
                             overlay: _gridOverlay,
+                            explodingCells: _explodingCells,
+                            lollipopSlamPos: _lollipopSlamPos,
+                            lollipopSlamSize: _lollipopSlamSize,
                           ),
                         ),
                         if (_lastScore != null && _gridOverlay != Colors.transparent)
@@ -567,49 +600,108 @@ class _GameScreenState extends ConsumerState<GameScreen>
 class _GridWidget extends StatelessWidget {
   final GridState gridState;
   final Color overlay;
+  final List<Cell> explodingCells;
+  final Offset? lollipopSlamPos;
+  final double lollipopSlamSize;
 
-  const _GridWidget({required this.gridState, required this.overlay});
+  const _GridWidget({
+    required this.gridState,
+    required this.overlay,
+    this.explodingCells = const [],
+    this.lollipopSlamPos,
+    this.lollipopSlamSize = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
     final grid = gridState.grid;
     final selected = gridState.selectedCells;
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.zero,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: grid.size,
-            mainAxisSpacing: 2,
-            crossAxisSpacing: 2,
-          ),
-          itemCount: grid.size * grid.size,
-          itemBuilder: (_, index) {
-            final row = index ~/ grid.size;
-            final col = index % grid.size;
-            final cell = grid.getCell(row, col);
-            final isSelected = selected.contains(cell);
-            final selIndex = isSelected ? selected.indexOf(cell) : -1;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double cellSize = constraints.maxWidth / grid.size;
 
-            return _CellTile(
-              cell: cell,
-              isSelected: isSelected,
-              selectionIndex: selIndex,
-              totalSelected: selected.length,
-            );
-          },
-        ),
-        if (overlay != Colors.transparent)
-          Positioned.fill(
-            child: Container(
-              color: overlay,
-              child: const SizedBox.expand(),
-            ),
-          ),
-      ],
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            for (final cell in grid.allCells)
+              AnimatedPositioned(
+                key: ValueKey(cell.id),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.bounceOut,
+                left: cell.col * cellSize,
+                top: cell.row * cellSize,
+                width: cellSize,
+                height: cellSize,
+                child: _CellTile(
+                  cell: cell,
+                  isSelected: selected.contains(cell),
+                  selectionIndex: selected.contains(cell) ? selected.indexOf(cell) : -1,
+                  totalSelected: selected.length,
+                ),
+              ),
+
+            // Exploding Cells Effect
+            for (final exp in explodingCells)
+              Positioned(
+                left: exp.col * cellSize,
+                top: exp.row * cellSize,
+                width: cellSize,
+                height: cellSize,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 1.0, end: 2.0),
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, scale, child) {
+                    return Opacity(
+                      opacity: (2.0 - scale).clamp(0.0, 1.0),
+                      child: Transform.scale(
+                        scale: scale,
+                        child: _CellTile(
+                          cell: exp,
+                          isSelected: true,
+                          selectionIndex: -1,
+                          totalSelected: 1,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+            // Lollipop Slam Effect
+            if (lollipopSlamPos != null)
+              Positioned(
+                left: lollipopSlamPos!.dx - (lollipopSlamSize * 0.25),
+                top: lollipopSlamPos!.dy - (lollipopSlamSize * 0.25),
+                width: lollipopSlamSize * 1.5,
+                height: lollipopSlamSize * 1.5,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.elasticOut,
+                  builder: (context, value, child) {
+                    return Transform.scale(
+                      scale: value,
+                      child: Opacity(
+                        opacity: (value > 0.8 ? (1.0 - value) * 5 : 1.0).clamp(0.0, 1.0),
+                        child: Image.asset('assets/images/joker_lollipop.png'),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+            if (overlay != Colors.transparent)
+              Positioned.fill(
+                child: Container(
+                  color: overlay,
+                  child: const SizedBox.expand(),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

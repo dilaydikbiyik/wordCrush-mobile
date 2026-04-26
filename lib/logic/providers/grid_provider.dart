@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/cell.dart';
@@ -6,6 +7,8 @@ import '../../data/services/trie_service.dart';
 import '../algorithms/gravity_engine.dart';
 import '../algorithms/grid_generator.dart';
 import '../algorithms/grid_solver_isolate.dart';
+import '../powers/power_executor.dart';
+import '../powers/power_type.dart';
 
 /// Immutable state for the game grid and cell selection.
 class GridState {
@@ -146,13 +149,47 @@ class GridNotifier extends StateNotifier<GridState> {
   }
 
   /// Removes the given [cells] from the grid, applies gravity, fills blanks.
-  void removeAndRefill(List<Cell> cells) {
-    final newGrid = _gravityEngine.removeAndRefill(state.grid, cells);
+  /// Also handles special power generation and chain-reaction blasts.
+  /// Returns the full list of actually destroyed cells.
+  List<Cell> removeAndRefill(List<Cell> cells) {
+    if (cells.isEmpty) return [];
+
+    final powerExecutor = PowerExecutor();
+    final Set<Cell> toDestroy = {};
+    final List<Cell> queue = List.from(cells);
+
+    // 1. Check if the newly formed word generates a power tile
+    final newPowerType = PowerExecutor.determinePowerForWordLength(cells.length);
+    Cell? powerCell;
+    
+    if (newPowerType != PowerType.none) {
+      final lastCell = cells.last;
+      powerCell = lastCell.copyWith(powerType: newPowerType, isSelected: false);
+      
+      // Do not destroy the cell that transforms into a power tile
+      queue.removeWhere((c) => c.row == lastCell.row && c.col == lastCell.col);
+    }
+
+    // 2. Add existing powers in the selection to the blast radius
+    toDestroy.addAll(powerExecutor.calculateBlastRadius(state.grid, queue.toSet()));
+
+    // Ensure empty cells are not sent to gravity engine
+    toDestroy.removeWhere((c) => c.isEmpty);
+
+    // 3. Remove all cells in the blast radius
+    var currentGrid = state.grid;
+    if (powerCell != null) {
+      currentGrid = currentGrid.setCell(powerCell);
+    }
+    
+    final newGrid = _gravityEngine.removeAndRefill(currentGrid, toDestroy.toList());
     state = state.copyWith(
       grid: newGrid,
       selectedCells: [],
       currentWord: '',
     );
+    
+    return toDestroy.toList();
   }
 
   /// Shuffles all letters on the grid randomly.

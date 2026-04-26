@@ -96,8 +96,8 @@
 - [x] **Joker veritabanı & senkronizasyon**: `loadInventory()` SplashScreen'de hiç çağrılmıyordu — uygulama her açılışta envanter boş başlıyordu. `splash_screen.dart`'a eklendi, düzeltildi.
 - [x] **Joker butonları tıklama bağlantısı eksik**: `_JokerBtn`'larda `onTap` yok, `JokerExecutor` GameScreen'e hiç bağlanmamış — jokerler görsel var ama işlev yapmıyor
 - [x] **Solvability check hiç çağrılmıyor**: `GridProvider.scanAsync()` her hamle sonrası tetiklenmesi gerekirken GameScreen'den hiç çağrılmıyor — grid çözümsüz kalabilir, auto-shuffle devreye girmiyor
-- [ ] **Harf düşme animasyonu**: Kelime patlatılınca üstteki harfler aşağı kayarken animasyon yok — `GravityEngine` sonrası her hücre için aşağı kayma animasyonu eklenecek
-- [ ] **Patlama animasyonu**: Geçerli kelime seçilince hücreler kaybolmadan önce patlama/silme efekti eklenecek (Lottie veya Flutter animasyonu)
+- [x] **Harf düşme animasyonu**: Kelime patlatılınca üstteki harfler aşağı kayarken animasyon yok — `GravityEngine` sonrası her hücre için aşağı kayma animasyonu eklenecek
+- [x] **Patlama animasyonu**: Geçerli kelime seçilince hücreler kaybolmadan önce patlama/silme efekti eklenecek (Lottie veya Flutter animasyonu)
 
 ### Sıradaki Ekran: Animasyonlar ve Özel Güçler
 
@@ -186,16 +186,16 @@
   - [ ] (OPSİYONEL) Karta tıklayınca detay ekranı aç (joker açıklaması + satın al butonu)
   - [ ] (OPSİYONEL) Joker kullanım animasyonu (Lottie)
 
-## Phase 7: Özel Güçler & Jokerler
+## Phase 7: Özel Güçler & Jokerler ✅
 
-- [ ] `PowerType` enum (RowClear, AreaBlast, ColumnClear, MegaBlast)
-- [ ] `PowerExecutor`
-  - [ ] 4 harf → Satır Temizleme (tüm satırı sil)
-  - [ ] 5 harf → Alan Patlatma (komşu hücreleri sil)
-  - [ ] 6 harf → Sütun Temizleme (tüm sütunu sil)
-  - [ ] 7+ harf → Mega Patlatma (2 birim çevre sil)
-- [ ] Özel simge hücreleri (güç simgesi grid'e yerleştirme)
-- [ ] Güç aktivasyon mekaniği (simgeyi kelimede kullanma → tetikleme)
+- [x] `PowerType` enum (RowClear, AreaBlast, ColumnClear, MegaBlast)
+- [x] `PowerExecutor`
+  - [x] 4 harf → Satır Temizleme (tüm satırı sil)
+  - [x] 5 harf → Alan Patlatma (komşu hücreleri sil)
+  - [x] 6 harf → Sütun Temizleme (tüm sütunu sil)
+  - [x] 7+ harf → Mega Patlatma (2 birim çevre sil)
+- [x] Özel simge hücreleri (güç simgesi grid'e yerleştirme)
+- [x] Güç aktivasyon mekaniği (simgeyi kelimede kullanma → tetikleme)
 - [x] `JokerType` enum (6 joker)
 - [x] `JokerExecutor`
   - [x] Balık: rastgele harfleri yok et
@@ -206,14 +206,14 @@
   - [x] Parti Güçlendiricisi: tümünü sil + yeniden doldur
 - [x] Joker kullanımı sonrası gravity + solvability kontrolü
 
-## Phase 8: Animasyonlar, Ses & Polish
+## Phase 8: Animasyonlar, Ses & Polish [/]
 
-- [ ] Lottie animasyon dosyaları bul/oluştur:
-  - [ ] Harf düşme (gravity) animasyonu
-  - [ ] Harf patlatma animasyonu
-  - [ ] Satır/sütun temizleme efekti
-  - [ ] Bomba/mega patlatma efekti
-  - [ ] Combo popup animasyonu
+- [x] Yerleşik Flutter animasyonları (Lottie yerine assetlerle):
+  - [x] Harf düşme (gravity) animasyonu (`AnimatedPositioned`)
+  - [x] Harf patlatma animasyonu (`TweenAnimationBuilder`)
+  - [x] Satır/sütun temizleme efekti
+  - [x] Bomba/mega patlatma efekti
+  - [/] Combo popup animasyonu
 - [ ] Ses efektleri entegrasyonu (`audioplayers`):
   - [ ] Harf seçme sesi
   - [ ] Geçerli kelime sesi

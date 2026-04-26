@@ -1,32 +1,35 @@
+import '../../logic/powers/power_type.dart';
+
 /// Represents a single cell in the game grid.
-///
-/// Each cell holds its position ([row], [col]), the [letter] it displays,
-/// selection state, and an optional [powerType] for special-power tiles.
 class Cell {
+  static int _idCounter = 0;
+  
+  final int id;
   final int row;
   final int col;
   final String letter;
   final bool isSelected;
   final bool isEmpty;
-  final String? powerType;
+  final PowerType powerType;
 
-  const Cell({
+  Cell({
     required this.row,
     required this.col,
     required this.letter,
     this.isSelected = false,
     this.isEmpty = false,
-    this.powerType,
-  });
+    this.powerType = PowerType.none,
+    int? id,
+  }) : id = id ?? _idCounter++;
 
-  /// Creates an empty cell (letter cleared after word match).
-  const Cell.empty({
+  Cell.empty({
     required this.row,
     required this.col,
-  })  : letter = '',
+  })  : id = _idCounter++,
+        letter = '',
         isSelected = false,
         isEmpty = true,
-        powerType = null;
+        powerType = PowerType.none;
 
   Cell copyWith({
     int? row,
@@ -34,9 +37,10 @@ class Cell {
     String? letter,
     bool? isSelected,
     bool? isEmpty,
-    String? powerType,
+    PowerType? powerType,
   }) {
     return Cell(
+      id: id, // Explicitly pass current id to preserve it
       row: row ?? this.row,
       col: col ?? this.col,
       letter: letter ?? this.letter,
@@ -46,22 +50,25 @@ class Cell {
     );
   }
 
-  /// Returns true if [other] is one of the 8 directional neighbors.
   bool isAdjacentTo(Cell other) {
-    final dRow = (row - other.row).abs();
-    final dCol = (col - other.col).abs();
-    if (dRow == 0 && dCol == 0) return false;
-    return dRow <= 1 && dCol <= 1;
+    final rowDiff = (row - other.row).abs();
+    final colDiff = (col - other.col).abs();
+    return rowDiff <= 1 && colDiff <= 1 && !(rowDiff == 0 && colDiff == 0);
   }
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Cell && row == other.row && col == other.col;
+      other is Cell &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          row == other.row &&
+          col == other.col &&
+          letter == other.letter &&
+          isSelected == other.isSelected &&
+          isEmpty == other.isEmpty &&
+          powerType == other.powerType;
 
   @override
-  int get hashCode => row.hashCode ^ col.hashCode;
-
-  @override
-  String toString() => 'Cell($row, $col, "$letter")';
+  int get hashCode => Object.hash(id, row, col, letter, isSelected, isEmpty, powerType);
 }
