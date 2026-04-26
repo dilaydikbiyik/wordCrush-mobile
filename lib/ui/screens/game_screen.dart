@@ -12,6 +12,7 @@ import '../../logic/providers/score_provider.dart';
 import '../../logic/providers/trie_provider.dart';
 import '../../logic/scoring/combo_engine.dart';
 import '../../logic/scoring/score_calculator.dart';
+import '../../logic/powers/joker_executor.dart';
 import '../../router/app_router.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
@@ -31,6 +32,10 @@ class _GameScreenState extends ConsumerState<GameScreen>
   Color _gridOverlay = Colors.transparent;
   int? _lastScore;
   bool _gameOverHandled = false;
+
+  // Joker target selection state
+  String? _activeJokerType;
+  Cell? _jokerFirstCell;
 
   static const _jokerTypes = [
     JokerType.fish,
@@ -61,11 +66,18 @@ class _GameScreenState extends ConsumerState<GameScreen>
     _shakeAnim = Tween<double>(begin: 0, end: 12).animate(
       CurvedAnimation(parent: _shakeController, curve: Curves.elasticIn),
     );
+    // Reset position when shake animation completes so grid returns to origin
+    _shakeController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _shakeController.reset();
+      }
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final gameState = ref.read(gameProvider);
       ref.read(gridProvider.notifier).initializeGrid(gameState.gridSize);
       ref.read(scoreProvider.notifier).reset();
+      _runSolvabilityCheck();
     });
   }
 
@@ -89,6 +101,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
   }
 
   void _onPanUpdate(DragUpdateDetails d) {
+    if (_activeJokerType != null) return; // Disable swipe during joker mode
     final box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) return;
     final local = box.globalToLocal(d.globalPosition);
@@ -98,7 +111,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
     }
   }
 
-  void _onPanEnd(DragEndDetails _) {
+  void _onPanEnd(DragEndDetails details) {
+    if (_activeJokerType != null) return; // Disable swipe during joker mode
     final gridState = ref.read(gridProvider);
     final word = CharNormalizer.toTurkishUpper(gridState.currentWord);
 
@@ -115,8 +129,19 @@ class _GameScreenState extends ConsumerState<GameScreen>
     }
 
     if (trie.contains(word)) {
-      final combos = ComboEngine(trie).findComboWords(word);
+      // Get combo sub-words, excluding main word to avoid double scoring
+      final allCombos = ComboEngine(trie).findComboWords(word);
+      final combos = allCombos.where((w) => w != word).toList();
       final score = ScoreCalculator().calculateTotalScore(word, combos);
+
+      debugPrint('✅ KABUL: "$word" → puan=$score, combo=${combos.join(", ")}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ KABUL: $word (+$score puan)'),
+          duration: const Duration(seconds: 1),
+          backgroundColor: Colors.green,
+        ),
+      );
 
       ref.read(scoreProvider.notifier).addWordScore(score, combos);
       ref.read(gameProvider.notifier).recordWord(word);
@@ -125,6 +150,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
       setState(() => _lastScore = score);
       _flashGreen();
+
+      // Check solvability after grid changes
+      _runSolvabilityCheck();
 
       final gameState = ref.read(gameProvider);
       if (gameState.isGameOver && !_gameOverHandled) {
@@ -137,8 +165,18 @@ class _GameScreenState extends ConsumerState<GameScreen>
         );
       }
     } else {
+      debugPrint('❌ RED: "$word" sözlükte bulunamadı');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ GEÇERSİZ: $word'),
+          duration: const Duration(seconds: 1),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() => _lastScore = null);
       ref.read(gridProvider.notifier).clearSelection();
       _shake();
+      _flashRed();
     }
   }
 
@@ -146,9 +184,105 @@ class _GameScreenState extends ConsumerState<GameScreen>
     _shakeController.forward(from: 0);
   }
 
+  /// Runs solvability check in background isolate.
+  /// Updates formable word count and auto-shuffles if grid has no valid words.
+  void _runSolvabilityCheck() {
+    final trie = ref.read(trieProvider).valueOrNull;
+    if (trie == null) return;
+    ref.read(gridProvider.notifier).scanAsync(trie);
+  }
+
+  // ─── Joker Handlers ─────────────────────────────────────────────────
+
+  void _onJokerTap(String jokerType) {
+    final jokerState = ref.read(jokerProvider);
+    if (!jokerState.hasJoker(jokerType)) return;
+
+    // If already in this joker mode, cancel
+    if (_activeJokerType == jokerType) {
+      _cancelJokerMode();
+      return;
+    }
+
+    // Jokers that don't need target: execute immediately
+    if (!JokerExecutor.requiresTarget(jokerType)) {
+      final used = ref.read(jokerProvider.notifier).useJoker(jokerType);
+      if (!used) return;
+      _executeJoker(jokerType, null, null);
+      return;
+    }
+
+    // Enter target selection mode
+    setState(() {
+      _activeJokerType = jokerType;
+      _jokerFirstCell = null;
+    });
+  }
+
+  void _onGridTapForJoker(TapUpDetails details) {
+    if (_activeJokerType == null) return;
+    final box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final local = box.globalToLocal(details.globalPosition);
+    final pos = _cellFromOffset(local);
+    if (pos == null) return;
+
+    final cell = ref.read(gridProvider).grid.getCell(pos.$1, pos.$2);
+    if (cell.isEmpty) return;
+
+    if (JokerExecutor.requiresTwoTargets(_activeJokerType!)) {
+      // Swap: need two cells
+      if (_jokerFirstCell == null) {
+        setState(() => _jokerFirstCell = cell);
+        return;
+      }
+      // Second cell must be adjacent
+      if (!_jokerFirstCell!.isAdjacentTo(cell)) {
+        setState(() => _jokerFirstCell = null); // Reset
+        return;
+      }
+      final used = ref.read(jokerProvider.notifier).useJoker(_activeJokerType!);
+      if (!used) { _cancelJokerMode(); return; }
+      _executeJoker(_activeJokerType!, _jokerFirstCell, cell);
+    } else {
+      // Single target (Lollipop, Wheel)
+      final used = ref.read(jokerProvider.notifier).useJoker(_activeJokerType!);
+      if (!used) { _cancelJokerMode(); return; }
+      _executeJoker(_activeJokerType!, cell, null);
+    }
+  }
+
+  void _executeJoker(String jokerType, Cell? target, Cell? second) {
+    final grid = ref.read(gridProvider).grid;
+    final executor = JokerExecutor();
+    final newGrid = executor.execute(
+      jokerType: jokerType,
+      grid: grid,
+      targetCell: target,
+      secondCell: second,
+    );
+    ref.read(gridProvider.notifier).setGrid(newGrid);
+    _cancelJokerMode();
+    _runSolvabilityCheck();
+  }
+
+  void _cancelJokerMode() {
+    setState(() {
+      _activeJokerType = null;
+      _jokerFirstCell = null;
+    });
+  }
+
   void _flashGreen() {
     setState(() => _gridOverlay = Colors.green.withAlpha(60));
     Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) setState(() => _gridOverlay = Colors.transparent);
+    });
+  }
+
+  void _flashRed() {
+    setState(() => _gridOverlay = Colors.red.withAlpha(50));
+    Future.delayed(const Duration(milliseconds: 400), () {
       if (mounted) setState(() => _gridOverlay = Colors.transparent);
     });
   }
@@ -259,6 +393,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 child: GestureDetector(
                   onPanUpdate: _onPanUpdate,
                   onPanEnd: _onPanEnd,
+                  onTapUp: _onGridTapForJoker,
                   child: AnimatedBuilder(
                     animation: _shakeAnim,
                     builder: (context, child) => Transform.translate(
@@ -307,7 +442,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.02,
                 right: size.width * 0.83,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[0], quantity: jokerState.getQuantity(_jokerTypes[0]), active: jokerState.getQuantity(_jokerTypes[0]) > 0, iconSize: 100, alignment: Alignment(0.1, 0.05)),
+                child: _JokerBtn(assetPath: _jokerAssets[0], quantity: jokerState.getQuantity(_jokerTypes[0]), active: jokerState.getQuantity(_jokerTypes[0]) > 0, iconSize: 100, alignment: Alignment(0.1, 0.05), isActiveMode: _activeJokerType == _jokerTypes[0], onTap: () => _onJokerTap(_jokerTypes[0])),
               ),
               // Joker — Tekerlek
               Positioned(
@@ -315,7 +450,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.18,
                 right: size.width * 0.67,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[1], quantity: jokerState.getQuantity(_jokerTypes[1]), active: jokerState.getQuantity(_jokerTypes[1]) > 0, iconSize: 85, alignment: Alignment(0, -0.18)),
+                child: _JokerBtn(assetPath: _jokerAssets[1], quantity: jokerState.getQuantity(_jokerTypes[1]), active: jokerState.getQuantity(_jokerTypes[1]) > 0, iconSize: 85, alignment: Alignment(0, -0.18), isActiveMode: _activeJokerType == _jokerTypes[1], onTap: () => _onJokerTap(_jokerTypes[1])),
               ),
               // Joker — Lolipop
               Positioned(
@@ -323,7 +458,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.34,
                 right: size.width * 0.51,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[2], quantity: jokerState.getQuantity(_jokerTypes[2]), active: jokerState.getQuantity(_jokerTypes[2]) > 0, iconSize: 80, alignment: Alignment(0.00, -0.28)),
+                child: _JokerBtn(assetPath: _jokerAssets[2], quantity: jokerState.getQuantity(_jokerTypes[2]), active: jokerState.getQuantity(_jokerTypes[2]) > 0, iconSize: 80, alignment: Alignment(0.00, -0.28), isActiveMode: _activeJokerType == _jokerTypes[2], onTap: () => _onJokerTap(_jokerTypes[2])),
               ),
               // Joker — Değiştir
               Positioned(
@@ -331,7 +466,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.50,
                 right: size.width * 0.35,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[3], quantity: jokerState.getQuantity(_jokerTypes[3]), active: jokerState.getQuantity(_jokerTypes[3]) > 0, iconSize: 77, alignment: Alignment(0.3, -0.2)),
+                child: _JokerBtn(assetPath: _jokerAssets[3], quantity: jokerState.getQuantity(_jokerTypes[3]), active: jokerState.getQuantity(_jokerTypes[3]) > 0, iconSize: 77, alignment: Alignment(0.3, -0.2), isActiveMode: _activeJokerType == _jokerTypes[3], onTap: () => _onJokerTap(_jokerTypes[3])),
               ),
               // Joker — Karıştır
               Positioned(
@@ -339,7 +474,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.658,
                 right: size.width * 0.19,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[4], quantity: jokerState.getQuantity(_jokerTypes[4]), active: jokerState.getQuantity(_jokerTypes[4]) > 0, iconSize: 40, alignment: Alignment.center),
+                child: _JokerBtn(assetPath: _jokerAssets[4], quantity: jokerState.getQuantity(_jokerTypes[4]), active: jokerState.getQuantity(_jokerTypes[4]) > 0, iconSize: 40, alignment: Alignment.center, isActiveMode: _activeJokerType == _jokerTypes[4], onTap: () => _onJokerTap(_jokerTypes[4])),
               ),
               // Joker — Parti
               Positioned(
@@ -347,7 +482,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.817,
                 right: size.width * 0.03,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[5], quantity: jokerState.getQuantity(_jokerTypes[5]), active: jokerState.getQuantity(_jokerTypes[5]) > 0, iconSize: 100, alignment: Alignment(0.3, -0.45)),
+                child: _JokerBtn(assetPath: _jokerAssets[5], quantity: jokerState.getQuantity(_jokerTypes[5]), active: jokerState.getQuantity(_jokerTypes[5]) > 0, iconSize: 100, alignment: Alignment(0.3, -0.45), isActiveMode: _activeJokerType == _jokerTypes[5], onTap: () => _onJokerTap(_jokerTypes[5])),
               ),
 
               // Mevcut kelime
@@ -377,20 +512,47 @@ class _GameScreenState extends ConsumerState<GameScreen>
                   ),
                 ),
 
-              // Çıkış butonu
+              // Joker mode indicator
+              if (_activeJokerType != null)
+                Positioned(
+                  top: size.height * 0.27,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: _cancelJokerMode,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade800,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          JokerExecutor.requiresTwoTargets(_activeJokerType!)
+                              ? (_jokerFirstCell == null ? 'İlk hücreye dokun' : 'Komşu hücreye dokun')
+                              : 'Hedef hücreye dokun',
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Çıkış butonu — hit area büyütüldü
               Positioned(
                 top: size.height * 0.04,
                 left: size.width * 0.03,
                 child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: _showExitDialog,
                   child: Container(
-                    width: 36,
-                    height: 36,
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
                       color: Colors.black54,
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(24),
                     ),
-                    child: const Icon(Icons.close, color: Colors.white, size: 20),
+                    child: const Icon(Icons.close, color: Colors.white, size: 22),
                   ),
                 ),
               ),
@@ -544,6 +706,8 @@ class _JokerBtn extends StatelessWidget {
   final bool active;
   final double? iconSize;
   final Alignment alignment;
+  final VoidCallback? onTap;
+  final bool isActiveMode;
 
   const _JokerBtn({
     required this.assetPath,
@@ -551,60 +715,69 @@ class _JokerBtn extends StatelessWidget {
     required this.active,
     this.iconSize,
     this.alignment = Alignment.center,
+    this.onTap,
+    this.isActiveMode = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      opacity: active ? 1.0 : 0.35,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: OverflowBox(
-              alignment: alignment,
-              minWidth: 0,
-              minHeight: 0,
-              maxWidth: iconSize ?? double.infinity,
-              maxHeight: iconSize ?? double.infinity,
-              child: Image.asset(
-                assetPath,
-                width: iconSize,
-                height: iconSize,
-                fit: BoxFit.contain,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: active ? onTap : null,
+      child: Opacity(
+        opacity: active ? 1.0 : 0.35,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                color: isActiveMode ? Colors.orange.withAlpha(40) : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                border: isActiveMode
+                    ? Border.all(color: Colors.orange, width: 2)
+                    : null,
+              ),
+              child: OverflowBox(
+                alignment: alignment,
+                minWidth: 0,
+                minHeight: 0,
+                maxWidth: iconSize ?? double.infinity,
+                maxHeight: iconSize ?? double.infinity,
+                child: Image.asset(
+                  assetPath,
+                  width: iconSize,
+                  height: iconSize,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-          ),
-          if (quantity > 0)
-            Positioned(
-              top: -4,
-              right: -4,
-              child: Container(
-                width: 18,
-                height: 18,
-                decoration: const BoxDecoration(
-                  color: Colors.black87,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    '$quantity',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
+            if (quantity > 0)
+              Positioned(
+                top: -4,
+                right: -4,
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: const BoxDecoration(
+                    color: Colors.black87,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$quantity',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

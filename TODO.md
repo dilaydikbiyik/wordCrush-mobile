@@ -91,22 +91,18 @@
 
 ### Açık Buglar & Kontrol Edilecekler
 
-- [ ] **Grid shake bug**: Geçersiz kelime sonrası sallama animasyonu tamamlanınca grid eski konumuna oturmuyor
-- [ ] **Çıkış butonu**: Bazen tıklamayı algılamıyor; ikon/buton alanı küçük olabilir, tasarım değiştirilebilir
+- [x] **Grid shake bug**: Geçersiz kelime sonrası sallama animasyonu tamamlanınca grid eski konumuna oturmuyor
+- [x] **Çıkış butonu**: Bazen tıklamayı algılamıyor; ikon/buton alanı küçük olabilir, tasarım değiştirilebilir
 - [x] **Joker veritabanı & senkronizasyon**: `loadInventory()` SplashScreen'de hiç çağrılmıyordu — uygulama her açılışta envanter boş başlıyordu. `splash_screen.dart`'a eklendi, düzeltildi.
-- [ ] **Joker butonları tıklama bağlantısı eksik**: `_JokerBtn`'larda `onTap` yok, `JokerExecutor` GameScreen'e hiç bağlanmamış — jokerler görsel var ama işlev yapmıyor
-- [ ] **Solvability check hiç çağrılmıyor**: `GridProvider.scanAsync()` her hamle sonrası tetiklenmesi gerekirken GameScreen'den hiç çağrılmıyor — grid çözümsüz kalabilir, auto-shuffle devreye girmiyor
+- [x] **Joker butonları tıklama bağlantısı eksik**: `_JokerBtn`'larda `onTap` yok, `JokerExecutor` GameScreen'e hiç bağlanmamış — jokerler görsel var ama işlev yapmıyor
+- [x] **Solvability check hiç çağrılmıyor**: `GridProvider.scanAsync()` her hamle sonrası tetiklenmesi gerekirken GameScreen'den hiç çağrılmıyor — grid çözümsüz kalabilir, auto-shuffle devreye girmiyor
 - [ ] **Harf düşme animasyonu**: Kelime patlatılınca üstteki harfler aşağı kayarken animasyon yok — `GravityEngine` sonrası her hücre için aşağı kayma animasyonu eklenecek
 - [ ] **Patlama animasyonu**: Geçerli kelime seçilince hücreler kaybolmadan önce patlama/silme efekti eklenecek (Lottie veya Flutter animasyonu)
 
-### Sıradaki Ekran: ScoreScreen
+### Sıradaki Ekran: Animasyonlar ve Özel Güçler
 
-- `score_bg.png` sadece kırmızı doku/texture (içinde UI yok)
-- Tüm içerik Flutter widget: bej container + siyah border kart stili
-- Üst: 6 istatistik kartı (toplam oyun, en yüksek skor, toplam kelime, ort. skor, en uzun kelime, toplam hamle)
-- Alt: `ListView.builder` — her kart: oyun no, tarih, grid, skor, kelime sayısı, en uzun kelime
-- `GameRecord` listesi ObjectBox'tan `gameProvider` veya yeni `scoreListProvider` ile çekilecek
-- Kart font: `Courier` / monospace typewriter stili
+- Harf düşme ve patlatma efektleri için animasyonların eklenmesi.
+- Phase 7 kapsamındaki kelime uzunluğuna bağlı PowerExecutor entegrasyonu.
 
 ### Navigation Mimarisi (Tüm Ekranlarda Geçerli)
 
@@ -126,7 +122,7 @@
 - [x] `grid_size_bg.png` — GridSizeScreen arka planı
 - [x] `move_count_bg.png` — MoveCountScreen arka planı
 - [x] `game_bg.png` — GameScreen arka planı (üst 3 kutu + kağıt grid alanı + 6 gri joker yuvası)
-- [ ] `score_bg.png` — ScoreScreen arka planı (sadece kırmızı doku, UI yok)
+- [x] `score_bg.png` — ScoreScreen arka planı (sadece kırmızı doku, UI yok)
 - [x] `market_bg.png` — MarketScreen arka planı (bakiye/fiyat kutuları boş)
 
 ### Ekranlar
@@ -170,12 +166,12 @@
   - [x] Geçersiz kelime → kırmızı feedback + sallama efekti
   - [x] Çıkış onay dialogu ("Çıkmak istediğinize emin misiniz?")
   - [x] Hamle bittiğinde otomatik oyun sonu → skor kaydetme
-- [ ] `ScoreScreen`
-  - [ ] Asset: `score_bg.png` arka plana ekle (sadece kırmızı doku)
-  - [ ] Üst kısım: 6 istatistik kartı Flutter widget (bej container + siyah border)
-  - [ ] Alt kısım: ListView.builder ile oyun kartları (en son oynanan üstte)
-  - [ ] Her kartta: oyun no, tarih, grid, puan, kelime sayısı, en uzun kelime, süre
-  - [ ] Kart stili: bej/kağıt renkli container, siyah border, Courier/typewriter font
+- [x] `ScoreScreen`
+  - [x] Asset: `score_bg.png` arka plana ekle (sadece kırmızı doku)
+  - [x] Üst kısım: 6 istatistik kartı Flutter widget (bej container + siyah border)
+  - [x] Alt kısım: ListView.builder ile oyun kartları (en son oynanan üstte)
+  - [x] Her kartta: oyun no, tarih, grid, puan, kelime sayısı, en uzun kelime, süre
+  - [x] Kart stili: bej/kağıt renkli container, siyah border, Courier/typewriter font
 - [x] `MarketScreen`
   - [x] Asset: `market_bg.png` arka plana ekle
   - [x] 6 joker kartı — isim ve açıklamalar:
@@ -200,15 +196,15 @@
   - [ ] 7+ harf → Mega Patlatma (2 birim çevre sil)
 - [ ] Özel simge hücreleri (güç simgesi grid'e yerleştirme)
 - [ ] Güç aktivasyon mekaniği (simgeyi kelimede kullanma → tetikleme)
-- [ ] `JokerType` enum (6 joker)
-- [ ] `JokerExecutor`
-  - [ ] Balık: rastgele harfleri yok et
-  - [ ] Tekerlek: satır + sütun sil
-  - [ ] Lolipop Kırıcı: tek harf sil
-  - [ ] Serbest Değiştirme: iki harf yer değiştir
-  - [ ] Harf Karıştırma: grid shuffle
-  - [ ] Parti Güçlendiricisi: tümünü sil + yeniden doldur
-- [ ] Joker kullanımı sonrası gravity + solvability kontrolü
+- [x] `JokerType` enum (6 joker)
+- [x] `JokerExecutor`
+  - [x] Balık: rastgele harfleri yok et
+  - [x] Tekerlek: satır + sütun sil
+  - [x] Lolipop Kırıcı: tek harf sil
+  - [x] Serbest Değiştirme: iki harf yer değiştir
+  - [x] Harf Karıştırma: grid shuffle
+  - [x] Parti Güçlendiricisi: tümünü sil + yeniden doldur
+- [x] Joker kullanımı sonrası gravity + solvability kontrolü
 
 ## Phase 8: Animasyonlar, Ses & Polish
 
