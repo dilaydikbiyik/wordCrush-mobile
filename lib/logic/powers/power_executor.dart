@@ -73,7 +73,6 @@ class PowerExecutor {
           break;
 
         case PowerType.none:
-        default:
           break;
       }
     }

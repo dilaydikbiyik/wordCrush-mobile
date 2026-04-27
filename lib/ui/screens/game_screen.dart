@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/utils/char_normalizer.dart';
 import '../../data/models/cell.dart';
 import '../../data/models/joker_inventory.dart';
+import '../../logic/providers/audio_provider.dart';
 import '../../logic/providers/game_provider.dart';
 import '../../logic/providers/grid_provider.dart';
 import '../../logic/providers/joker_provider.dart';
@@ -112,7 +113,10 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final local = box.globalToLocal(d.globalPosition);
     final pos = _cellFromOffset(local);
     if (pos != null) {
-      ref.read(gridProvider.notifier).selectCell(pos.$1, pos.$2);
+      final added = ref.read(gridProvider.notifier).selectCell(pos.$1, pos.$2);
+      if (added) {
+        ref.read(audioProvider.notifier).playSound(SoundType.letterSelect);
+      }
     }
   }
 
@@ -139,10 +143,10 @@ class _GameScreenState extends ConsumerState<GameScreen>
       final combos = allCombos.where((w) => w != word).toList();
       final score = ScoreCalculator().calculateTotalScore(word, combos);
 
-      debugPrint('✅ KABUL: "$word" → puan=$score, combo=${combos.join(", ")}');
+      debugPrint('\u2705 KABUL: "$word" \u2192 puan=$score, combo=${combos.join(", ")}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ KABUL: $word (+$score puan)'),
+          content: Text('\u2705 KABUL: $word (+$score puan)'),
           duration: const Duration(seconds: 1),
           backgroundColor: Colors.green,
         ),
@@ -151,6 +155,13 @@ class _GameScreenState extends ConsumerState<GameScreen>
       ref.read(scoreProvider.notifier).addWordScore(score, combos);
       ref.read(gameProvider.notifier).recordWord(word);
       ref.read(gameProvider.notifier).decrementMove();
+
+      // Play valid word sound (combo sound overrides if 2+ combos)
+      if (allCombos.length >= 2) {
+        ref.read(audioProvider.notifier).playSound(SoundType.combo);
+      } else {
+        ref.read(audioProvider.notifier).playSound(SoundType.validWord);
+      }
       
       final destroyed = ref.read(gridProvider.notifier).removeAndRefill(gridState.selectedCells);
       
@@ -163,6 +174,12 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
       setState(() => _lastScore = score);
       _flashGreen();
+
+      // Show combo popup if 2+ combos found (including main word)
+      final totalCombos = allCombos.length;
+      if (totalCombos >= 2) {
+        _showComboPopup(totalCombos, score);
+      }
 
       // Check solvability after grid changes
       _runSolvabilityCheck();
@@ -178,16 +195,17 @@ class _GameScreenState extends ConsumerState<GameScreen>
         );
       }
     } else {
-      debugPrint('❌ RED: "$word" sözlükte bulunamadı');
+      debugPrint('\u274c RED: "$word" s\u00f6zl\u00fckte bulunamad\u0131');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ GEÇERSİZ: $word'),
+          content: Text('\u274c GE\u00c7ERSS\u0130Z: $word'),
           duration: const Duration(seconds: 1),
           backgroundColor: Colors.red,
         ),
       );
       setState(() => _lastScore = null);
       ref.read(gridProvider.notifier).clearSelection();
+      ref.read(audioProvider.notifier).playSound(SoundType.invalidWord);
       _shake();
       _flashRed();
     }
@@ -292,6 +310,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
       secondCell: second,
     );
     ref.read(gridProvider.notifier).setGrid(newGrid);
+    ref.read(audioProvider.notifier).playSound(SoundType.powerActivation);
     _cancelJokerMode();
     _runSolvabilityCheck();
   }
@@ -317,7 +336,27 @@ class _GameScreenState extends ConsumerState<GameScreen>
     });
   }
 
+  /// Displays a floating combo banner above the grid when 2+ sub-words are found.
+  ///
+  /// Uses an [OverlayEntry] with a [TweenAnimationBuilder] so the banner
+  /// slides up and fades out without touching the widget tree below.
+  void _showComboPopup(int comboCount, int totalScore) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (context) => _ComboPopup(
+        comboCount: comboCount,
+        totalScore: totalScore,
+        onDone: () => entry.remove(),
+      ),
+    );
+
+    overlay.insert(entry);
+  }
+
   void _showGameOverDialog(int finalScore) {
+    ref.read(audioProvider.notifier).playSound(SoundType.gameOver);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -342,7 +381,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Çıkmak istiyor musun?'),
-        content: const Text('Oyun kaydedilmeyecek.'),
+        content: const Text('Mevcut skorun kaydedilecek.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -351,6 +390,12 @@ class _GameScreenState extends ConsumerState<GameScreen>
           TextButton(
             onPressed: () {
               Navigator.pop(context);
+              // Save current score to DB before leaving (PDF requirement)
+              if (!_gameOverHandled) {
+                _gameOverHandled = true;
+                final finalScore = ref.read(scoreProvider).totalScore;
+                ref.read(gameProvider.notifier).endGame(finalScore);
+              }
               context.go(AppRoutes.home);
             },
             child: const Text('Evet'),
@@ -394,7 +439,10 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 top: size.height * 0.107,
                 left: size.width * 0.082,
                 width: size.width * 0.255,
-                child: _InfoBox(label: '${scoreState.totalScore}'),
+                child: _InfoBox(
+                  title: 'SKOR',
+                  label: '${scoreState.totalScore}',
+                ),
               ),
 
               // Üst bar — kalan hamle
@@ -402,7 +450,10 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 top: size.height * 0.107,
                 left: size.width * 0.366,
                 width: size.width * 0.268,
-                child: _InfoBox(label: '${gameState.movesLeft}'),
+                child: _InfoBox(
+                  title: 'HAMLE',
+                  label: '${gameState.movesLeft}',
+                ),
               ),
 
               // Üst bar — kelime sayısı
@@ -410,7 +461,10 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 top: size.height * 0.107,
                 right: size.width * 0.086,
                 width: size.width * 0.25,
-                child: _InfoBox(label: '${gridState.formableWordCount}'),
+                child: _InfoBox(
+                  title: 'KELİME',
+                  label: '${gridState.formableWordCount}',
+                ),
               ),
 
               // Grid alanı
@@ -475,7 +529,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.02,
                 right: size.width * 0.83,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[0], quantity: jokerState.getQuantity(_jokerTypes[0]), active: jokerState.getQuantity(_jokerTypes[0]) > 0, iconSize: 100, alignment: Alignment(0.1, 0.05), isActiveMode: _activeJokerType == _jokerTypes[0], onTap: () => _onJokerTap(_jokerTypes[0])),
+                child: _JokerBtn(assetPath: _jokerAssets[0], quantity: jokerState.getQuantity(_jokerTypes[0]), active: jokerState.getQuantity(_jokerTypes[0]) > 0, iconSize: 100, alignment: const Alignment(0.1, 0.05), isActiveMode: _activeJokerType == _jokerTypes[0], onTap: () => _onJokerTap(_jokerTypes[0])),
               ),
               // Joker — Tekerlek
               Positioned(
@@ -483,7 +537,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.18,
                 right: size.width * 0.67,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[1], quantity: jokerState.getQuantity(_jokerTypes[1]), active: jokerState.getQuantity(_jokerTypes[1]) > 0, iconSize: 85, alignment: Alignment(0, -0.18), isActiveMode: _activeJokerType == _jokerTypes[1], onTap: () => _onJokerTap(_jokerTypes[1])),
+                child: _JokerBtn(assetPath: _jokerAssets[1], quantity: jokerState.getQuantity(_jokerTypes[1]), active: jokerState.getQuantity(_jokerTypes[1]) > 0, iconSize: 85, alignment: const Alignment(0, -0.18), isActiveMode: _activeJokerType == _jokerTypes[1], onTap: () => _onJokerTap(_jokerTypes[1])),
               ),
               // Joker — Lolipop
               Positioned(
@@ -491,7 +545,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.34,
                 right: size.width * 0.51,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[2], quantity: jokerState.getQuantity(_jokerTypes[2]), active: jokerState.getQuantity(_jokerTypes[2]) > 0, iconSize: 80, alignment: Alignment(0.00, -0.28), isActiveMode: _activeJokerType == _jokerTypes[2], onTap: () => _onJokerTap(_jokerTypes[2])),
+                child: _JokerBtn(assetPath: _jokerAssets[2], quantity: jokerState.getQuantity(_jokerTypes[2]), active: jokerState.getQuantity(_jokerTypes[2]) > 0, iconSize: 80, alignment: const Alignment(0.00, -0.28), isActiveMode: _activeJokerType == _jokerTypes[2], onTap: () => _onJokerTap(_jokerTypes[2])),
               ),
               // Joker — Değiştir
               Positioned(
@@ -499,7 +553,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.50,
                 right: size.width * 0.35,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[3], quantity: jokerState.getQuantity(_jokerTypes[3]), active: jokerState.getQuantity(_jokerTypes[3]) > 0, iconSize: 77, alignment: Alignment(0.3, -0.2), isActiveMode: _activeJokerType == _jokerTypes[3], onTap: () => _onJokerTap(_jokerTypes[3])),
+                child: _JokerBtn(assetPath: _jokerAssets[3], quantity: jokerState.getQuantity(_jokerTypes[3]), active: jokerState.getQuantity(_jokerTypes[3]) > 0, iconSize: 77, alignment: const Alignment(0.3, -0.2), isActiveMode: _activeJokerType == _jokerTypes[3], onTap: () => _onJokerTap(_jokerTypes[3])),
               ),
               // Joker — Karıştır
               Positioned(
@@ -515,7 +569,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.817,
                 right: size.width * 0.03,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[5], quantity: jokerState.getQuantity(_jokerTypes[5]), active: jokerState.getQuantity(_jokerTypes[5]) > 0, iconSize: 100, alignment: Alignment(0.3, -0.45), isActiveMode: _activeJokerType == _jokerTypes[5], onTap: () => _onJokerTap(_jokerTypes[5])),
+                child: _JokerBtn(assetPath: _jokerAssets[5], quantity: jokerState.getQuantity(_jokerTypes[5]), active: jokerState.getQuantity(_jokerTypes[5]) > 0, iconSize: 100, alignment: const Alignment(0.3, -0.45), isActiveMode: _activeJokerType == _jokerTypes[5], onTap: () => _onJokerTap(_jokerTypes[5])),
               ),
 
               // Mevcut kelime
@@ -771,22 +825,38 @@ class _CellTile extends StatelessWidget {
 }
 
 class _InfoBox extends StatelessWidget {
+  final String title;
   final String label;
-  const _InfoBox({required this.label});
+  const _InfoBox({required this.title, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 52,
+      height: 58,
       color: Colors.transparent,
       alignment: Alignment.center,
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w900,
-          color: Colors.black87,
-        ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: Colors.black54,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: Colors.black87,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -874,3 +944,119 @@ class _JokerBtn extends StatelessWidget {
     );
   }
 }
+
+// ─── Combo Popup Overlay ──────────────────────────────────────────────────────
+
+/// A self-removing overlay banner shown when the player earns a combo.
+///
+/// Slides upward while fading out over 1.2 s, then calls [onDone] to remove
+/// itself from the [Overlay] without requiring any parent state changes.
+class _ComboPopup extends StatefulWidget {
+  final int comboCount;
+  final int totalScore;
+  final VoidCallback onDone;
+
+  const _ComboPopup({
+    required this.comboCount,
+    required this.totalScore,
+    required this.onDone,
+  });
+
+  @override
+  State<_ComboPopup> createState() => _ComboPopupState();
+}
+
+class _ComboPopupState extends State<_ComboPopup>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _opacity;
+  late final Animation<double> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: const Interval(0.4, 1.0)),
+    );
+
+    _slide = Tween<double>(begin: 0.0, end: -60.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+    );
+
+    _ctrl.forward().then((_) => widget.onDone());
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return Material(
+      color: Colors.transparent,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Padding(
+          padding: EdgeInsets.only(top: size.height * 0.38),
+          child: AnimatedBuilder(
+            animation: _ctrl,
+            builder: (context, child) => Transform.translate(
+              offset: Offset(0, _slide.value),
+              child: Opacity(
+                opacity: _opacity.value,
+                child: child,
+              ),
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFFFFB800),
+                    Color(0xFFFF6B00),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.orange.withAlpha(80),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🔥', style: TextStyle(fontSize: 20)),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${widget.comboCount}× COMBO!  +${widget.totalScore}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 1.2,
+                      shadows: [
+                        Shadow(color: Colors.black38, blurRadius: 6),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+

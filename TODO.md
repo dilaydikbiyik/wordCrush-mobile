@@ -213,14 +213,14 @@
   - [x] Harf patlatma animasyonu (`TweenAnimationBuilder`)
   - [x] Satır/sütun temizleme efekti
   - [x] Bomba/mega patlatma efekti
-  - [/] Combo popup animasyonu
-- [ ] Ses efektleri entegrasyonu (`audioplayers`):
-  - [ ] Harf seçme sesi
-  - [ ] Geçerli kelime sesi
-  - [ ] Geçersiz kelime sesi
-  - [ ] Combo sesi
-  - [ ] Özel güç aktivasyon sesi
-  - [ ] Oyun sonu sesi
+  - [x] Combo popup animasyonu
+- [x] Ses efektleri entegrasyonu (`audioplayers`):
+  - [x] Harf seçme sesi
+  - [x] Geçerli kelime sesi
+  - [x] Geçersiz kelime sesi
+  - [x] Combo sesi
+  - [x] Özel güç aktivasyon sesi
+  - [x] Oyun sonu sesi
 - [ ] UI polish:
   - [ ] Uygun renk paleti ve tema tasarımı
   - [ ] Responsive layout (farklı iPhone boyutları)
@@ -230,15 +230,15 @@
 ## Phase 9: Test & Final
 
 - [x] Unit test: Trie (insert, search, startsWith)
-- [ ] Unit test: GridGenerator (frekans dağılımı doğrulama)
-- [ ] Unit test: GridSolver (kelime bulma doğruluğu)
-- [ ] Unit test: ScoreCalculator (puan hesaplama)
-- [ ] Unit test: ComboEngine (alt kelime tespiti doğruluğu)
+- [x] Unit test: GridGenerator (frekans dağılımı doğrulama)
+- [x] Unit test: GridSolver (kelime bulma doğruluğu)
+- [x] Unit test: ScoreCalculator (puan hesaplama)
+- [x] Unit test: ComboEngine (alt kelime tespiti doğruluğu)
 - [ ] Integration test: Oyun akışı (başla → oyna → bitir → skor kaydet)
 - [ ] Performans testi: 10×10 grid solvability tarama süresi
 - [ ] Edge case: Grid'de kelime kalmama senaryoları
-- [ ] Edge case: Altın yetersiz durumu (market)
-- [ ] Edge case: Tüm jokerler kullanılmış durumu
-- [ ] Edge case: Kullanıcı adı boş / çok uzun
+- [x] Edge case: Altın yetersiz durumu (market)
+- [x] Edge case: Tüm jokerler kullanılmış durumu
+- [x] Edge case: Kullanıcı adı boş / çok uzun
 - [ ] iOS emülatör üzerinde son test
 - [ ] Sunum hazırlığı
