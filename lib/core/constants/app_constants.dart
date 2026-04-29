@@ -13,6 +13,9 @@ class AppConstants {
   // Gold
   static const int initialGold = 5000;
 
+  /// Her [goldPerScore] puan için oyun sonunda 1 altın kazanılır.
+  static const int goldPerScore = 10;
+
   // Word validation
   static const int minWordLength = 3;
 

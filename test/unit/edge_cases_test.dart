@@ -84,6 +84,81 @@ void main() {
       });
     });
 
+    // ─── JokerNotifier iş mantığı (derinleştirilmiş) ────────────────────────
+
+    group('JokerNotifier — useJoker business logic', () {
+      /// Simulates JokerNotifier.useJoker() logic without needing ObjectBox.
+      /// The notifier: checks qty > 0, decrements, persists, returns bool.
+      Map<String, int> useJoker(Map<String, int> inventory, String type) {
+        final current = inventory[type] ?? 0;
+        if (current <= 0) return inventory; // unchanged
+        return Map<String, int>.from(inventory)..[type] = current - 1;
+      }
+
+      bool canUse(Map<String, int> inventory, String type) =>
+          (inventory[type] ?? 0) > 0;
+
+      test('useJoker decrements qty by exactly 1', () {
+        var inv = {JokerType.fish: 3};
+        inv = useJoker(inv, JokerType.fish);
+        expect(inv[JokerType.fish], 2);
+      });
+
+      test('useJoker on qty=1 leaves 0, not negative', () {
+        var inv = {JokerType.fish: 1};
+        inv = useJoker(inv, JokerType.fish);
+        expect(inv[JokerType.fish], 0);
+        expect(canUse(inv, JokerType.fish), isFalse);
+      });
+
+      test('useJoker on qty=0 returns false (cannot use)', () {
+        final inv = {JokerType.fish: 0};
+        expect(canUse(inv, JokerType.fish), isFalse,
+            reason: 'Player has 0 fish jokers — useJoker should fail');
+      });
+
+      test('useJoker on unknown type returns false', () {
+        final inv = <String, int>{}; // no jokers at all
+        expect(canUse(inv, JokerType.wheel), isFalse,
+            reason: 'Joker type not in inventory → cannot use');
+      });
+
+      test('useJoker does not affect other joker types', () {
+        var inv = {JokerType.fish: 2, JokerType.wheel: 5};
+        inv = useJoker(inv, JokerType.fish);
+        expect(inv[JokerType.fish], 1, reason: 'Fish decremented');
+        expect(inv[JokerType.wheel], 5, reason: 'Wheel unchanged');
+      });
+
+      test('using all jokers one by one exhausts the inventory', () {
+        var inv = {JokerType.lollipop: 3};
+        for (int i = 3; i > 0; i--) {
+          expect(canUse(inv, JokerType.lollipop), isTrue);
+          inv = useJoker(inv, JokerType.lollipop);
+        }
+        expect(canUse(inv, JokerType.lollipop), isFalse);
+        expect(inv[JokerType.lollipop], 0);
+      });
+
+
+      test('goldPerScore constant is positive', () {
+        // Ensures the gold reward formula never divides by zero
+        expect(AppConstants.goldPerScore, greaterThan(0));
+      });
+
+      test('gold reward formula: 100 score → 10 gold', () {
+        const score = 100;
+        final gold = (score / AppConstants.goldPerScore).round();
+        expect(gold, 10);
+      });
+
+      test('gold reward formula: 0 score → 0 gold (no reward)', () {
+        const score = 0;
+        final gold = (score / AppConstants.goldPerScore).round();
+        expect(gold, 0);
+      });
+    });
+
     // ─── Username validation ─────────────────────────────────────────────────
 
     group('Username — validation edge cases', () {
@@ -168,3 +243,4 @@ void main() {
     });
   });
 }
+

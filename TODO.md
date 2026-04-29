@@ -222,10 +222,10 @@
   - [x] Özel güç aktivasyon sesi
   - [x] Oyun sonu sesi
 - [ ] UI polish:
-  - [ ] Uygun renk paleti ve tema tasarımı
+  - [x] Uygun renk paleti ve tema tasarımı
   - [ ] Responsive layout (farklı iPhone boyutları)
-  - [ ] Loading state'leri ve skeleton ekranları
-  - [ ] Error handling UI (hata mesajları)
+  - [x] Loading state'leri ve skeleton ekranları
+  - [x] Error handling UI (hata mesajları)
 
 ## Phase 9: Test & Final
 
@@ -236,7 +236,7 @@
 - [x] Unit test: ComboEngine (alt kelime tespiti doğruluğu)
 - [ ] Integration test: Oyun akışı (başla → oyna → bitir → skor kaydet)
 - [ ] Performans testi: 10×10 grid solvability tarama süresi
-- [ ] Edge case: Grid'de kelime kalmama senaryoları
+- [x] Edge case: Grid'de kelime kalmama senaryoları
 - [x] Edge case: Altın yetersiz durumu (market)
 - [x] Edge case: Tüm jokerler kullanılmış durumu
 - [x] Edge case: Kullanıcı adı boş / çok uzun

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/utils/char_normalizer.dart';
 import '../../data/models/cell.dart';
 import '../../data/models/joker_inventory.dart';
@@ -9,6 +10,7 @@ import '../../logic/providers/audio_provider.dart';
 import '../../logic/providers/game_provider.dart';
 import '../../logic/providers/grid_provider.dart';
 import '../../logic/providers/joker_provider.dart';
+import '../../logic/providers/player_provider.dart';
 import '../../logic/providers/score_provider.dart';
 import '../../logic/providers/trie_provider.dart';
 import '../../logic/scoring/combo_engine.dart';
@@ -16,6 +18,7 @@ import '../../logic/scoring/score_calculator.dart';
 import '../../logic/powers/joker_executor.dart';
 import '../../logic/powers/power_type.dart';
 import '../../router/app_router.dart';
+
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -191,7 +194,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
       // Show combo popup if 2+ combos found (including main word)
       final totalCombos = allCombos.length;
       if (totalCombos >= 2) {
-        _showComboPopup(totalCombos, score);
+        // Pass sub-words (excluding main word) so popup can display them
+        _showComboPopup(totalCombos, score, combos);
       }
 
       // Check solvability after grid changes
@@ -201,10 +205,15 @@ class _GameScreenState extends ConsumerState<GameScreen>
       if (gameState.isGameOver && !_gameOverHandled) {
         _gameOverHandled = true;
         final finalScore = ref.read(scoreProvider).totalScore;
+        // #24: Oyun sonunda puana göre altın ödülü ver
+        final goldEarned = (finalScore / AppConstants.goldPerScore).round();
+        if (goldEarned > 0) {
+          ref.read(playerProvider.notifier).addGold(goldEarned);
+        }
         ref.read(gameProvider.notifier).endGame(finalScore);
         Future.delayed(
           const Duration(milliseconds: 600),
-          () => _showGameOverDialog(finalScore),
+          () => _showGameOverDialog(finalScore, goldEarned),
         );
       }
     } else {
@@ -226,10 +235,15 @@ class _GameScreenState extends ConsumerState<GameScreen>
       if (gameState.isGameOver && !_gameOverHandled) {
         _gameOverHandled = true;
         final finalScore = ref.read(scoreProvider).totalScore;
+        // #24: Oyun sonunda puana göre altın ödülü ver
+        final goldEarned = (finalScore / AppConstants.goldPerScore).round();
+        if (goldEarned > 0) {
+          ref.read(playerProvider.notifier).addGold(goldEarned);
+        }
         ref.read(gameProvider.notifier).endGame(finalScore);
         Future.delayed(
           const Duration(milliseconds: 600),
-          () => _showGameOverDialog(finalScore),
+          () => _showGameOverDialog(finalScore, goldEarned),
         );
       }
     }
@@ -335,6 +349,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
     );
     ref.read(gridProvider.notifier).setGrid(newGrid);
     ref.read(audioProvider.notifier).playSound(SoundType.powerActivation);
+    // #15b: Joker görsel geri bildirimi — turuncu flash efekti
+    _flashOrange();
     _cancelJokerMode();
     _runSolvabilityCheck();
   }
@@ -360,11 +376,20 @@ class _GameScreenState extends ConsumerState<GameScreen>
     });
   }
 
+  /// #15b: Joker kullanım görsel geri bildirimi — kısa turuncu flash.
+  void _flashOrange() {
+    setState(() => _gridOverlay = Colors.orange.withAlpha(70));
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) setState(() => _gridOverlay = Colors.transparent);
+    });
+  }
+
   /// Displays a floating combo banner above the grid when 2+ sub-words are found.
   ///
   /// Uses an [OverlayEntry] with a [TweenAnimationBuilder] so the banner
   /// slides up and fades out without touching the widget tree below.
-  void _showComboPopup(int comboCount, int totalScore) {
+  /// [subWords] are the combo sub-words (excluding the main word) to display.
+  void _showComboPopup(int comboCount, int totalScore, List<String> subWords) {
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
 
@@ -372,6 +397,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
       builder: (context) => _ComboPopup(
         comboCount: comboCount,
         totalScore: totalScore,
+        subWords: subWords,
         onDone: () => entry.remove(),
       ),
     );
@@ -379,14 +405,31 @@ class _GameScreenState extends ConsumerState<GameScreen>
     overlay.insert(entry);
   }
 
-  void _showGameOverDialog(int finalScore) {
+  void _showGameOverDialog(int finalScore, [int goldEarned = 0]) {
     ref.read(audioProvider.notifier).playSound(SoundType.gameOver);
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         title: const Text('Oyun Bitti!'),
-        content: Text('Toplam Puan: $finalScore'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Toplam Puan: $finalScore'),
+            if (goldEarned > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  '🪙 +$goldEarned Altın Kazandın!',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFFFB800),
+                  ),
+                ),
+              ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -419,6 +462,11 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 final gameState = ref.read(gameProvider);
                 if (gameState.wordCount > 0) {
                   final finalScore = ref.read(scoreProvider).totalScore;
+                  // #24: Çıkış yapılırken de altın ver
+                  final goldEarned = (finalScore / AppConstants.goldPerScore).round();
+                  if (goldEarned > 0) {
+                    ref.read(playerProvider.notifier).addGold(goldEarned);
+                  }
                   ref.read(gameProvider.notifier).endGame(finalScore);
                 }
               }
@@ -438,6 +486,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final gridState = ref.watch(gridProvider);
     final scoreState = ref.watch(scoreProvider);
     final jokerState = ref.watch(jokerProvider);
+    // #9c/d: Trie yükleme durumunu izle — loading/error UI
+    final trieAsync = ref.watch(trieProvider);
 
     return PopScope(
       canPop: false,
@@ -670,6 +720,77 @@ class _GameScreenState extends ConsumerState<GameScreen>
                   ),
                 ),
               ),
+
+              // #9c/d: Trie yükleme / hata overlay
+              if (trieAsync.isLoading)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black45,
+                    child: const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(color: Color(0xFFFF6B35)),
+                          SizedBox(height: 12),
+                          Text(
+                            'Sözlük yükleniyor...',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              if (trieAsync.hasError)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black54,
+                    child: Center(
+                      child: Container(
+                        margin: const EdgeInsets.all(32),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2D1010),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.red.shade700, width: 2),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.error_outline, color: Colors.redAccent, size: 40),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Sözlük yüklenemedi',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Lütfen uygulamayı yeniden başlatın.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.white70, fontSize: 13),
+                            ),
+                            const SizedBox(height: 14),
+                            TextButton(
+                              onPressed: () => context.go(AppRoutes.home),
+                              child: const Text(
+                                'Ana Menüye Dön',
+                                style: TextStyle(color: Color(0xFFFF6B35), fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -677,6 +798,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
     );
   }
 }
+
 
 class _GridWidget extends StatefulWidget {
   final GridState gridState;
@@ -1039,18 +1161,22 @@ class _JokerBtn extends StatelessWidget {
 
 // ─── Combo Popup Overlay ──────────────────────────────────────────────────────
 
+
 /// A self-removing overlay banner shown when the player earns a combo.
 ///
 /// Slides upward while fading out over 1.2 s, then calls [onDone] to remove
 /// itself from the [Overlay] without requiring any parent state changes.
+/// [subWords] are the discovered combo sub-words (excluding the main word).
 class _ComboPopup extends StatefulWidget {
   final int comboCount;
   final int totalScore;
+  final List<String> subWords;
   final VoidCallback onDone;
 
   const _ComboPopup({
     required this.comboCount,
     required this.totalScore,
+    required this.subWords,
     required this.onDone,
   });
 
@@ -1069,14 +1195,14 @@ class _ComboPopupState extends State<_ComboPopup>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1400),
     );
 
     _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: const Interval(0.4, 1.0)),
+      CurvedAnimation(parent: _ctrl, curve: const Interval(0.45, 1.0)),
     );
 
-    _slide = Tween<double>(begin: 0.0, end: -60.0).animate(
+    _slide = Tween<double>(begin: 0.0, end: -70.0).animate(
       CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
     );
 
@@ -1092,6 +1218,10 @@ class _ComboPopupState extends State<_ComboPopup>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final subText = widget.subWords.isNotEmpty
+        ? widget.subWords.join(' • ')
+        : null;
+
     return Material(
       color: Colors.transparent,
       child: Align(
@@ -1108,7 +1238,7 @@ class _ComboPopupState extends State<_ComboPopup>
               ),
             ),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [
@@ -1125,23 +1255,40 @@ class _ComboPopupState extends State<_ComboPopup>
                   ),
                 ],
               ),
-              child: Row(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('🔥', style: TextStyle(fontSize: 20)),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${widget.comboCount}× COMBO!  +${widget.totalScore}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 1.2,
-                      shadows: [
-                        Shadow(color: Colors.black38, blurRadius: 6),
-                      ],
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🔥', style: TextStyle(fontSize: 20)),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${widget.comboCount}× COMBO!  +${widget.totalScore}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: 1.2,
+                          shadows: [
+                            Shadow(color: Colors.black38, blurRadius: 6),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
+                  if (subText != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      subText,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white70,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1151,4 +1298,5 @@ class _ComboPopupState extends State<_ComboPopup>
     );
   }
 }
+
 

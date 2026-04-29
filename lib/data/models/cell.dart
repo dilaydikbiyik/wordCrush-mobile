@@ -1,9 +1,15 @@
+import 'package:flutter/foundation.dart';
 import '../../logic/powers/power_type.dart';
 
 /// Represents a single cell in the game grid.
 class Cell {
   static int _idCounter = 0;
-  
+
+  /// Resets the global ID counter. Call this in test [setUp] to keep
+  /// cell IDs small and predictable across test cases.
+  @visibleForTesting
+  static void resetIdCounter() => _idCounter = 0;
+
   final int id;
   final int row;
   final int col;

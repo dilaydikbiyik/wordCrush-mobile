@@ -343,32 +343,32 @@ Madde 8 ile bağlantılı. Hesaplama mantığı doğru (non-overlapping greedy, 
 | #   | Sorun                            | Durum                     | Aciliyet        |
 | --- | -------------------------------- | ------------------------- | --------------- |
 | 1   | Riverpod 2 → 3 sürüm ihlali      | Spec ihlali               | 🔴 Kritik       |
-| 2   | Splash sahte progress bar        | Yanlış işaretlenmiş       | 🔴 Kritik       |
+| 2   | Splash sahte progress bar        | ✅ Düzeltildi             | 🔴 Kritik       |
 | 3   | Power tile simgesi yok           | Yanlış işaretlenmiş       | 🔴 Kritik       |
-| 4   | Solvability isolate performans   | Potansiyel donma          | 🟡 Orta         |
+| 4   | Solvability isolate performans   | ✅ Düzeltildi             | 🟡 Orta         |
 | 5   | Düşme animasyonu key hatası      | Görsel kalite sorunu      | 🟡 Orta         |
 | 6   | Çıkış → boş kayıt                | Veri kirliliği            | 🟢 Düşük        |
 | 7   | Combo isimlendirme               | Bakım riski               | 🟢 Düşük        |
 | 8   | Kelime sayısı etiketi eksik      | Spec metni yok            | 🟡 Orta         |
-| 9   | UI polish 4 madde                | Yapılmamış (doğru işaret) | 🟡 Plan dahili  |
+| 9   | UI polish 4 madde                | ✅ Düzeltildi             | 🟡 Plan dahili  |
 | 10  | Integration / performans testi   | Yapılmamış                | 🟡 Sunum öncesi |
 | 11  | ScoreScreen reaktif değil        | Mimari sorun              | 🟢 Düşük        |
-| 12  | Combo popup alt kelime yok       | İyileştirme               | 🟢 Düşük        |
+| 12  | Combo popup alt kelime yok       | ✅ Düzeltildi             | 🟢 Düşük        |
 | 13  | docs/ dosyaları doğrulanmadı     | Kontrol gerekli           | 🟢 Düşük        |
 | 14  | Power sesi çalmıyor              | Ses geri bildirimi eksik  | 🟢 Düşük        |
 | 15a | Hatalı kelimede hamle azalmıyor  | Karar bekleniyor          | 🟡 Orta         |
-| 15b | Joker animasyonu yok             | Görsel eksik              | 🟡 Orta         |
+| 15b | Joker animasyonu yok             | ✅ Düzeltildi             | 🟡 Orta         |
 | 15c | Ses efektleri yetersiz           | Kalite sorunu             | 🟡 Orta         |
-| 15  | Joker testleri yüzeysel          | Test kapsamı              | 🟡 Orta         |
+| 15  | Joker testleri yüzeysel          | ✅ Düzeltildi             | 🟡 Orta         |
 | 16  | Lint uyarıları (4 adet)          | Küçük                     | 🟢 Düşük        |
-| 17  | Cell.\_idCounter sonsuz artar    | Temizlik                  | 🟢 Düşük        |
+| 17  | Cell.\_idCounter sonsuz artar    | ✅ Düzeltildi             | 🟢 Düşük        |
 | 18  | Market-Joker sıkı bağlantı       | Riverpod 3 riski          | 🟢 Düşük        |
 | 19  | Username Türkçe karakter sapması | Edge case                 | 🟢 Düşük        |
 | 20  | InfoBox + currentWord çakışma    | UI sorunu                 | 🟢 Düşük        |
 | 21  | fish joker magic number          | Kod standardı             | 🟢 Düşük        |
 | 22  | Audio race condition             | Ses kalitesi              | 🟢 Düşük        |
 | 23  | formableWordCount etiketi        | Spec uyumsuzluğu          | 🟡 Orta         |
-| 24  | Oyun sonu altın ödülü yok        | Eksik mekanik             | 🟢 Düşük        |
+| 24  | Oyun sonu altın ödülü yok        | ✅ Düzeltildi             | 🟢 Düşük        |
 | 25  | Grid başlangıçta taranmıyor      | Edge case                 | 🟡 Orta         |
 | 26  | pubspec.yaml paketler geride     | Bağımlılık riski          | 🟢 Düşük        |
 

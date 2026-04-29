@@ -31,18 +31,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       CurvedAnimation(parent: _fillController, curve: Curves.easeInOut),
     );
 
-    // Sözlüğü splash ekranında arka planda yükle.
+    // Sözlüğü yükle; yüklenince (en az 2000ms) navigate et.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(trieProvider.future);
+      _loadAndNavigate();
     });
-
-    Future.delayed(const Duration(milliseconds: 2400), _navigate);
   }
 
   @override
   void dispose() {
     _fillController.dispose();
     super.dispose();
+  }
+
+  /// Hem trie yüklemesini hem minimum animasyon süresini paralel bekler.
+  Future<void> _loadAndNavigate() async {
+    await Future.wait([
+      ref.read(trieProvider.future),
+      Future.delayed(const Duration(milliseconds: 2000)),
+    ]);
+    if (!mounted) return;
+    _navigate();
   }
 
   void _navigate() {

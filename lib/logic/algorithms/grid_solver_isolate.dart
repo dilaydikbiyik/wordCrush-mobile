@@ -6,13 +6,18 @@ import 'grid_solver.dart';
 
 /// Input message for the background grid-scan isolate.
 ///
-/// All fields are plain Dart primitives so they can be sent across isolates
-/// via [compute] without serialization issues.
+/// [wordListHash] is a stable proxy (word list length) so the isolate-side
+/// Trie cache can skip a rebuild when the dictionary hasn't changed.
 class GridSolveMessage {
   final List<String> wordList;
   final List<List<String>> letters;
+  final int wordListHash;
 
-  GridSolveMessage({required this.wordList, required this.letters});
+  GridSolveMessage({
+    required this.wordList,
+    required this.letters,
+    required this.wordListHash,
+  });
 }
 
 /// Result returned from the background grid-scan isolate.
@@ -27,13 +32,25 @@ class GridSolveResult {
   GridSolveResult({required this.wordCount, this.fixedLetters});
 }
 
+// ─── Isolate-side Trie cache ───────────────────────────────────────────────
+// Avoids ~60 k Trie inserts on every move. The Trie is rebuilt only when
+// the word list hash changes (i.e. never during a single game session).
+int? _cachedWordListHash;
+TrieService? _cachedTrie;
+
 // Top-level function required by compute() — must not be a closure or method.
 GridSolveResult _solveGridInBackground(GridSolveMessage message) {
-  final trie = TrieService();
-  for (final word in message.wordList) {
-    trie.insert(word);
+  // Rebuild only when word list changed (first call or dictionary hot-reload).
+  if (_cachedTrie == null || _cachedWordListHash != message.wordListHash) {
+    final trie = TrieService();
+    for (final word in message.wordList) {
+      trie.insert(word);
+    }
+    _cachedTrie = trie;
+    _cachedWordListHash = message.wordListHash;
   }
 
+  final trie = _cachedTrie!;
   final grid = GridModel.fromLetters(message.letters);
   final solver = GridSolver(trie);
   final count = solver.countFormableWords(grid);
@@ -51,14 +68,17 @@ GridSolveResult _solveGridInBackground(GridSolveMessage message) {
 
 /// Runs the grid solvability scan in a background isolate.
 ///
-/// Passes [trie.wordList] and the grid letters to the isolate so the isolate
-/// can rebuild all data structures from scratch without sharing memory.
+/// Only [grid.toLetterGrid()] is serialized on every call. The word list is
+/// sent with a hash so the isolate-side cache can skip the expensive Trie
+/// build when the dictionary hasn't changed between moves.
 Future<GridSolveResult> scanGridAsync(GridModel grid, TrieService trie) {
   return compute(
     _solveGridInBackground,
     GridSolveMessage(
       wordList: trie.wordList,
       letters: grid.toLetterGrid(),
+      wordListHash: trie.wordList.length,
     ),
   );
 }
+
