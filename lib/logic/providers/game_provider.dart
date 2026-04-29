@@ -175,3 +175,12 @@ final gameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) {
   final db = ref.watch(objectBoxServiceProvider);
   return GameNotifier(db);
 });
+
+/// Reactive provider for all game records.
+///
+/// Re-reads from ObjectBox whenever [gameProvider] state changes (e.g. after endGame).
+final gameRecordsProvider = Provider<List<GameRecord>>((ref) {
+  ref.watch(gameProvider);
+  final db = ref.read(objectBoxServiceProvider);
+  return db.getAllGameRecords();
+});

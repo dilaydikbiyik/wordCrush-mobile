@@ -4,24 +4,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/game_record.dart';
 import '../../logic/providers/game_provider.dart';
 
-/// Displays overall performance stats (top) and per-game cards (bottom).
-///
-/// Loads GameRecord list from ObjectBoxService and computes summary stats.
 class ScoreScreen extends ConsumerWidget {
   const ScoreScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final size = MediaQuery.of(context).size;
-    final db = ref.read(objectBoxServiceProvider);
-    final records = db.getAllGameRecords(); // sorted newest first
+    final records = ref.watch(gameRecordsProvider);
 
-    // Compute summary stats
     final totalGames = records.length;
-    final bestScore =
-        records.isEmpty ? 0 : records.map((r) => r.score).reduce((a, b) => a > b ? a : b);
-    final totalWords =
-        records.isEmpty ? 0 : records.map((r) => r.wordCount).reduce((a, b) => a + b);
+    final bestScore = records.isEmpty
+        ? 0
+        : records.map((r) => r.score).reduce((a, b) => a > b ? a : b);
+    final totalWords = records.isEmpty
+        ? 0
+        : records.map((r) => r.wordCount).reduce((a, b) => a + b);
     final avgScore = totalGames > 0
         ? (records.map((r) => r.score).reduce((a, b) => a + b) / totalGames).round()
         : 0;
@@ -31,118 +28,143 @@ class ScoreScreen extends ConsumerWidget {
             .map((r) => r.longestWord)
             .where((w) => w.isNotEmpty)
             .fold<String>('', (a, b) => b.length > a.length ? b : a);
-    final totalMoves = records.isEmpty
+    final totalSeconds = records.isEmpty
         ? 0
         : records.map((r) => r.durationSeconds).reduce((a, b) => a + b);
 
     return Scaffold(
-      body: SizedBox(
-        width: size.width,
-        height: size.height,
-        child: Stack(
-          children: [
-            // Background
-            Image.asset(
-              'assets/images/score_bg.png',
-              fit: BoxFit.fill,
-              width: size.width,
-              height: size.height,
-            ),
-
-            // Back button
-            Positioned(
-              top: size.height * 0.05,
-              left: size.width * 0.04,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => Navigator.of(context).pop(),
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: const Icon(Icons.arrow_back,
-                      color: Colors.white, size: 22),
-                ),
+      body: Stack(
+        children: [
+          // Background
+          Container(
+            width: size.width,
+            height: size.height,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/score_bg.png'),
+                fit: BoxFit.cover,
               ),
             ),
+          ),
 
-            // Title
-            Positioned(
-              top: size.height * 0.055,
-              left: 0,
-              right: 0,
-              child: const Center(
-                child: Text(
-                  'Skor Tablosu',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black87,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-            ),
-
-            // Stats cards (top)
-            Positioned(
-              top: size.height * 0.11,
-              left: size.width * 0.04,
-              right: size.width * 0.04,
-              child: _StatsGrid(
-                totalGames: totalGames,
-                bestScore: bestScore,
-                totalWords: totalWords,
-                avgScore: avgScore,
-                longestWord: longestWord.isEmpty ? '-' : longestWord,
-                totalTime: _formatDuration(totalMoves),
-              ),
-            ),
-
-            // Game records list (bottom)
-            Positioned(
-              top: size.height * 0.42,
-              left: size.width * 0.04,
-              right: size.width * 0.04,
-              bottom: size.height * 0.02,
-              child: records.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Henüz oyun kaydı yok',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.black54,
-                          fontWeight: FontWeight.w600,
+          // Scrollable content
+          SafeArea(
+            child: Column(
+              children: [
+                // Top bar
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: size.width * 0.04, vertical: 8),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                          child: const Icon(Icons.arrow_back,
+                              color: Colors.white, size: 22),
                         ),
                       ),
-                    )
-                  : ListView.builder(
-                      padding: EdgeInsets.zero,
-                      itemCount: records.length,
-                      itemBuilder: (_, i) =>
-                          _GameRecordCard(record: records[i]),
-                    ),
+                      Expanded(
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5EFE0),
+                              borderRadius: BorderRadius.circular(8),
+                              border:
+                                  Border.all(color: Colors.black87, width: 1.5),
+                            ),
+                            child: const Text(
+                              'Skor Tablosu',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.black87,
+                                fontFamily: 'Courier',
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 44),
+                    ],
+                  ),
+                ),
+
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: size.width * 0.04, vertical: 8),
+                    children: [
+                      // 6 stat cards — 2 per row
+                      _StatsGrid(
+                        totalGames: totalGames,
+                        bestScore: bestScore,
+                        totalWords: totalWords,
+                        avgScore: avgScore,
+                        longestWord: longestWord.isEmpty ? '-' : longestWord,
+                        totalTime: _formatDuration(totalSeconds),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Game record cards
+                      if (records.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 32),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5EFE0),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                    color: Colors.black87, width: 1.5),
+                              ),
+                              child: const Text(
+                                'Henüz oyun kaydı yok.',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.black54,
+                                  fontFamily: 'Courier',
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        ...records.map((r) => _GameRecordCard(record: r)),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   String _formatDuration(int totalSeconds) {
     if (totalSeconds < 60) return '${totalSeconds}s';
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    if (minutes < 60) return '${minutes}d ${seconds}s';
-    final hours = minutes ~/ 60;
-    return '${hours}sa ${minutes % 60}d';
+    final m = totalSeconds ~/ 60;
+    final s = totalSeconds % 60;
+    if (m < 60) return '${m}d ${s}s';
+    final h = m ~/ 60;
+    return '${h}sa ${m % 60}d';
   }
 }
 
-/// 2×3 grid of summary statistic cards.
 class _StatsGrid extends StatelessWidget {
   final int totalGames;
   final int bestScore;
@@ -174,12 +196,16 @@ class _StatsGrid extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: stats
-          .map((s) => SizedBox(
-                width: (MediaQuery.of(context).size.width - 40) / 3,
-                child: _StatCard(title: s.$1, value: s.$2, icon: s.$3),
-              ))
-          .toList(),
+      children: stats.map((s) {
+        final cardWidth = (MediaQuery.of(context).size.width -
+                MediaQuery.of(context).size.width * 0.08 -
+                16) /
+            3;
+        return SizedBox(
+          width: cardWidth,
+          child: _StatCard(title: s.$1, value: s.$2, icon: s.$3),
+        );
+      }).toList(),
     );
   }
 }
@@ -203,11 +229,11 @@ class _StatCard extends StatelessWidget {
         color: const Color(0xFFF5EFE0),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.black87, width: 1.5),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withAlpha(20),
+            color: Color(0x33000000),
             blurRadius: 4,
-            offset: const Offset(0, 2),
+            offset: Offset(2, 3),
           ),
         ],
       ),
@@ -242,7 +268,6 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-/// A single game record card with typewriter-style font.
 class _GameRecordCard extends StatelessWidget {
   final GameRecord record;
 
@@ -254,8 +279,8 @@ class _GameRecordCard extends StatelessWidget {
         '${record.date.day.toString().padLeft(2, '0')}.'
         '${record.date.month.toString().padLeft(2, '0')}.'
         '${record.date.year}';
-    final durationStr = _formatGameDuration(record.durationSeconds);
     final gridLabel = '${record.gridSize}×${record.gridSize}';
+    final dur = _fmt(record.durationSeconds);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -264,17 +289,16 @@ class _GameRecordCard extends StatelessWidget {
         color: const Color(0xFFF5EFE0),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.black87, width: 1.5),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withAlpha(15),
+            color: Color(0x26000000),
             blurRadius: 3,
-            offset: const Offset(0, 2),
+            offset: Offset(2, 3),
           ),
         ],
       ),
       child: Row(
         children: [
-          // Game number badge
           Container(
             width: 36,
             height: 36,
@@ -295,7 +319,6 @@ class _GameRecordCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          // Details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,10 +350,9 @@ class _GameRecordCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _RecordStat(icon: Icons.star, value: '${record.score}'),
-                    _RecordStat(
-                        icon: Icons.text_fields, value: '${record.wordCount}'),
-                    _RecordStat(icon: Icons.timer, value: durationStr),
+                    _Stat(icon: Icons.star, value: '${record.score}'),
+                    _Stat(icon: Icons.text_fields, value: '${record.wordCount}'),
+                    _Stat(icon: Icons.timer, value: dur),
                   ],
                 ),
                 if (record.longestWord.isNotEmpty) ...[
@@ -353,7 +375,7 @@ class _GameRecordCard extends StatelessWidget {
     );
   }
 
-  String _formatGameDuration(int seconds) {
+  String _fmt(int seconds) {
     if (seconds < 60) return '${seconds}s';
     final m = seconds ~/ 60;
     final s = seconds % 60;
@@ -361,11 +383,11 @@ class _GameRecordCard extends StatelessWidget {
   }
 }
 
-class _RecordStat extends StatelessWidget {
+class _Stat extends StatelessWidget {
   final IconData icon;
   final String value;
 
-  const _RecordStat({required this.icon, required this.value});
+  const _Stat({required this.icon, required this.value});
 
   @override
   Widget build(BuildContext context) {

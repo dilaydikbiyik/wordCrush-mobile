@@ -19,6 +19,9 @@ class AppConstants {
   // Asset paths
   static const String wordsAssetPath = 'assets/data/turkish_words.txt';
 
+  // Joker behaviour
+  static const int fishDeleteCount = 3;
+
   // Joker prices
   static const int fishPrice = 100;
   static const int wheelPrice = 200;

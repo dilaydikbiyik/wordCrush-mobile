@@ -216,7 +216,7 @@ class GridNotifier extends StateNotifier<GridState> {
   ///
   /// Updates [formableWordCount] and, if no valid word exists, replaces the
   /// grid with a solvable version — all without blocking the UI thread.
-  Future<void> scanAsync(TrieService trie) async {
+  Future<void> scanAsync(TrieService trie, {bool isRetry = false}) async {
     final result = await scanGridAsync(state.grid, trie);
 
     if (result.fixedLetters != null) {
@@ -226,6 +226,8 @@ class GridNotifier extends StateNotifier<GridState> {
         currentWord: '',
         formableWordCount: result.wordCount,
       );
+      // Verify the fixed grid is truly solvable (guard against bad shuffle).
+      if (!isRetry) await scanAsync(trie, isRetry: true);
     } else {
       state = state.copyWith(formableWordCount: result.wordCount);
     }

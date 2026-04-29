@@ -22,7 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _errorText = 'Kullanıcı adı boş olamaz');
       return;
     }
-    if (username.length > 20) {
+    if (username.runes.length > 20) {
       setState(() => _errorText = 'En fazla 20 karakter');
       return;
     }

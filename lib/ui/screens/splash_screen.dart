@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../logic/providers/joker_provider.dart';
 import '../../logic/providers/player_provider.dart';
+import '../../logic/providers/trie_provider.dart';
 import '../../router/app_router.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -29,6 +30,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _fillAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fillController, curve: Curves.easeInOut),
     );
+
+    // Sözlüğü splash ekranında arka planda yükle.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(trieProvider.future);
+    });
 
     Future.delayed(const Duration(milliseconds: 2400), _navigate);
   }

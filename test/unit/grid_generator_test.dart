@@ -86,8 +86,8 @@ void main() {
       }
 
       // Sum counts by tier
-      int highCount = LetterFrequencies.high.fold(0, (s, l) => s + (counts[l] ?? 0));
-      int lowCount  = LetterFrequencies.low.fold(0, (s, l) => s + (counts[l] ?? 0));
+      final highCount = LetterFrequencies.high.fold(0, (s, l) => s + (counts[l] ?? 0));
+      final lowCount  = LetterFrequencies.low.fold(0, (s, l) => s + (counts[l] ?? 0));
 
       // High tier has 6 letters × 6 weight = 36 slots
       // Low tier has 4 letters × 1 weight  = 4 slots  (out of 103 total)

@@ -1,9 +1,3 @@
-/// Edge case unit tests for game mechanics and validation.
-///
-/// Covers:
-/// - Market: insufficient gold scenario
-/// - Joker inventory: all jokers used
-/// - Username: empty and over-max-length inputs
 import 'package:flutter_test/flutter_test.dart';
 import 'package:word_crush_mobile/core/constants/app_constants.dart';
 import 'package:word_crush_mobile/data/models/joker_inventory.dart';
@@ -34,9 +28,9 @@ void main() {
 
       test('Spending more than balance should fail', () {
         // Simulates PlayerNotifier.spendGold logic
-        int balance = 50;
+        const balance = 50;
         const cost = AppConstants.fishPrice; // 100
-        final canAfford = balance >= cost;
+        const canAfford = balance >= cost;
         expect(canAfford, isFalse);
       });
 

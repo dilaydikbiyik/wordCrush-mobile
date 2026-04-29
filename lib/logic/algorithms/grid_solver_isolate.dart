@@ -39,11 +39,14 @@ GridSolveResult _solveGridInBackground(GridSolveMessage message) {
   final count = solver.countFormableWords(grid);
 
   List<List<String>>? fixedLetters;
+  int finalCount = count;
   if (count == 0) {
-    fixedLetters = solver.ensureSolvable(grid).toLetterGrid();
+    final fixedGrid = solver.ensureSolvable(grid);
+    fixedLetters = fixedGrid.toLetterGrid();
+    finalCount = solver.countFormableWords(fixedGrid);
   }
 
-  return GridSolveResult(wordCount: count, fixedLetters: fixedLetters);
+  return GridSolveResult(wordCount: finalCount, fixedLetters: fixedLetters);
 }
 
 /// Runs the grid solvability scan in a background isolate.

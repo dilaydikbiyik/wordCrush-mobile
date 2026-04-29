@@ -14,6 +14,7 @@ import '../../logic/providers/trie_provider.dart';
 import '../../logic/scoring/combo_engine.dart';
 import '../../logic/scoring/score_calculator.dart';
 import '../../logic/powers/joker_executor.dart';
+import '../../logic/powers/power_type.dart';
 import '../../router/app_router.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
@@ -100,10 +101,22 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final gridSize = ref.read(gridProvider).grid.size;
     final cellW = size.width / gridSize;
     final cellH = size.height / gridSize;
-    final col = (localPos.dx / cellW).floor();
-    final row = (localPos.dy / cellH).floor();
-    if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) return null;
+    final col = (localPos.dx / cellW).floor().clamp(0, gridSize - 1);
+    final row = (localPos.dy / cellH).floor().clamp(0, gridSize - 1);
     return (row, col);
+  }
+
+  void _onPanStart(DragStartDetails d) {
+    if (_activeJokerType != null) return;
+    final box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final local = box.globalToLocal(d.globalPosition);
+    final pos = _cellFromOffset(local);
+    ref.read(gridProvider.notifier).clearSelection();
+    if (pos != null) {
+      ref.read(gridProvider.notifier).selectCell(pos.$1, pos.$2);
+      ref.read(audioProvider.notifier).playSound(SoundType.letterSelect);
+    }
   }
 
   void _onPanUpdate(DragUpdateDetails d) {
@@ -205,9 +218,20 @@ class _GameScreenState extends ConsumerState<GameScreen>
       );
       setState(() => _lastScore = null);
       ref.read(gridProvider.notifier).clearSelection();
+      ref.read(gameProvider.notifier).decrementMove();
       ref.read(audioProvider.notifier).playSound(SoundType.invalidWord);
       _shake();
       _flashRed();
+      final gameState = ref.read(gameProvider);
+      if (gameState.isGameOver && !_gameOverHandled) {
+        _gameOverHandled = true;
+        final finalScore = ref.read(scoreProvider).totalScore;
+        ref.read(gameProvider.notifier).endGame(finalScore);
+        Future.delayed(
+          const Duration(milliseconds: 600),
+          () => _showGameOverDialog(finalScore),
+        );
+      }
     }
   }
 
@@ -381,7 +405,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Çıkmak istiyor musun?'),
-        content: const Text('Mevcut skorun kaydedilecek.'),
+        content: const Text('En az bir kelime bulduysan skorun kaydedilecek.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -390,11 +414,13 @@ class _GameScreenState extends ConsumerState<GameScreen>
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              // Save current score to DB before leaving (PDF requirement)
               if (!_gameOverHandled) {
                 _gameOverHandled = true;
-                final finalScore = ref.read(scoreProvider).totalScore;
-                ref.read(gameProvider.notifier).endGame(finalScore);
+                final gameState = ref.read(gameProvider);
+                if (gameState.wordCount > 0) {
+                  final finalScore = ref.read(scoreProvider).totalScore;
+                  ref.read(gameProvider.notifier).endGame(finalScore);
+                }
               }
               context.go(AppRoutes.home);
             },
@@ -475,6 +501,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 child: AspectRatio(
                 aspectRatio: 1.0,
                 child: GestureDetector(
+                  onPanStart: _onPanStart,
                   onPanUpdate: _onPanUpdate,
                   onPanEnd: _onPanEnd,
                   onTapUp: _onGridTapForJoker,
@@ -575,7 +602,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
               // Mevcut kelime
               if (gridState.currentWord.isNotEmpty)
                 Positioned(
-                  top: size.height * 0.11,
+                  top: size.height * 0.2,
                   left: 0,
                   right: 0,
                   child: Center(
@@ -651,7 +678,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
   }
 }
 
-class _GridWidget extends StatelessWidget {
+class _GridWidget extends StatefulWidget {
   final GridState gridState;
   final Color overlay;
   final List<Cell> explodingCells;
@@ -667,9 +694,45 @@ class _GridWidget extends StatelessWidget {
   });
 
   @override
+  State<_GridWidget> createState() => _GridWidgetState();
+}
+
+class _GridWidgetState extends State<_GridWidget> {
+  // Maps cell.id → displayed row (used to start new cells above the grid).
+  final Map<int, int> _displayRows = {};
+
+  @override
+  void didUpdateWidget(_GridWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final oldIds =
+        oldWidget.gridState.grid.allCells.map((c) => c.id).toSet();
+    final gridSize = widget.gridState.grid.size;
+
+    // New cells (not in previous grid) start above the visible area.
+    for (final cell in widget.gridState.grid.allCells) {
+      if (!oldIds.contains(cell.id)) {
+        _displayRows[cell.id] = -gridSize;
+      }
+    }
+
+    // One frame later, snap them to their actual rows → AnimatedPositioned animates the drop.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        for (final cell in widget.gridState.grid.allCells) {
+          _displayRows[cell.id] = cell.row;
+        }
+      });
+    });
+  }
+
+  int _displayRow(Cell cell) => _displayRows[cell.id] ?? cell.row;
+
+  @override
   Widget build(BuildContext context) {
-    final grid = gridState.grid;
-    final selected = gridState.selectedCells;
+    final grid = widget.gridState.grid;
+    final selected = widget.gridState.selectedCells;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -684,7 +747,7 @@ class _GridWidget extends StatelessWidget {
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.bounceOut,
                 left: cell.col * cellSize,
-                top: cell.row * cellSize,
+                top: _displayRow(cell) * cellSize,
                 width: cellSize,
                 height: cellSize,
                 child: _CellTile(
@@ -696,7 +759,7 @@ class _GridWidget extends StatelessWidget {
               ),
 
             // Exploding Cells Effect
-            for (final exp in explodingCells)
+            for (final exp in widget.explodingCells)
               Positioned(
                 left: exp.col * cellSize,
                 top: exp.row * cellSize,
@@ -724,12 +787,12 @@ class _GridWidget extends StatelessWidget {
               ),
 
             // Lollipop Slam Effect
-            if (lollipopSlamPos != null)
+            if (widget.lollipopSlamPos != null)
               Positioned(
-                left: lollipopSlamPos!.dx - (lollipopSlamSize * 0.25),
-                top: lollipopSlamPos!.dy - (lollipopSlamSize * 0.25),
-                width: lollipopSlamSize * 1.5,
-                height: lollipopSlamSize * 1.5,
+                left: widget.lollipopSlamPos!.dx - (widget.lollipopSlamSize * 0.25),
+                top: widget.lollipopSlamPos!.dy - (widget.lollipopSlamSize * 0.25),
+                width: widget.lollipopSlamSize * 1.5,
+                height: widget.lollipopSlamSize * 1.5,
                 child: TweenAnimationBuilder<double>(
                   tween: Tween(begin: 0.0, end: 1.0),
                   duration: const Duration(milliseconds: 300),
@@ -746,10 +809,10 @@ class _GridWidget extends StatelessWidget {
                 ),
               ),
 
-            if (overlay != Colors.transparent)
+            if (widget.overlay != Colors.transparent)
               Positioned.fill(
                 child: Container(
-                  color: overlay,
+                  color: widget.overlay,
                   child: const SizedBox.expand(),
                 ),
               ),
@@ -807,20 +870,49 @@ class _CellTile extends StatelessWidget {
       ),
       child: cell.isEmpty
           ? null
-          : Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  cell.letter,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: textColor,
+          : Stack(
+              children: [
+                Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      cell.letter,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: textColor,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                if (cell.powerType != PowerType.none)
+                  Positioned(
+                    right: 2,
+                    top: 2,
+                    child: Icon(
+                      _powerIcon(cell.powerType),
+                      size: 10,
+                      color: isSelected ? Colors.white70 : Colors.deepOrange,
+                    ),
+                  ),
+              ],
             ),
     );
+  }
+
+  IconData _powerIcon(PowerType type) {
+    switch (type) {
+      case PowerType.rowClear:
+        return Icons.swap_horiz;
+      case PowerType.areaBlast:
+        return Icons.local_fire_department;
+      case PowerType.columnClear:
+        return Icons.swap_vert;
+      case PowerType.megaBlast:
+        return Icons.rocket_launch;
+      case PowerType.none:
+        return Icons.circle;
+    }
   }
 }
 

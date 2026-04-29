@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import '../../core/constants/app_constants.dart';
 import '../../data/models/cell.dart';
 import '../../data/models/grid_model.dart';
 import '../../data/models/joker_inventory.dart';
@@ -70,7 +71,7 @@ class JokerExecutor {
     if (nonEmpty.isEmpty) return grid;
 
     nonEmpty.shuffle(_random);
-    final toRemove = nonEmpty.take(min(3, nonEmpty.length)).toList();
+    final toRemove = nonEmpty.take(min(AppConstants.fishDeleteCount, nonEmpty.length)).toList();
     return _gravityEngine.removeAndRefill(grid, toRemove);
   }
 
