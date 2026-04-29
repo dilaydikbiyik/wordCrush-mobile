@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../logic/providers/player_provider.dart';
 import '../../router/app_router.dart';
+import '../widgets/press_3d_button.dart';
+
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -120,11 +122,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 top: size.height * 0.60,
                 left: size.width * 0.21,
                 right: size.width * 0.16,
-                child: GestureDetector(
+                child: Press3DButton(
                   onTap: _submit,
-                  child: Container(
-                    height: 80,
-                    color: Colors.transparent,
+                  height: 80,
+                  color: Colors.transparent,
+                  depthColor: const Color(0xFFD4B896),
+                  depth: 8,
+                  child: Image.asset(
+                    'assets/images/btn_login.png',
+                    fit: BoxFit.fill,
                   ),
                 ),
               ),

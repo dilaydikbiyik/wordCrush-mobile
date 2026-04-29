@@ -35,15 +35,13 @@ class MarketScreen extends ConsumerWidget {
     final gold = ref.watch(playerProvider).goldBalance;
     final jokerState = ref.watch(jokerProvider);
 
-    // Buton pozisyonları: (top%, left%, right%, height, alignmentY)
-    // alignmentY: -1.0=üst, 0.0=orta, 1.0=alt
     const buttonLayout = [
-      (0.17, 0.08, 0.53, 236.0, 0.8), // Balık
-      (0.17, 0.52, 0.099, 236.0, 0.8), // Tekerlek
-      (0.45, 0.09, 0.53, 236.0, 0.83), // Lolipop
-      (0.45, 0.52, 0.099, 236.0, 0.83), // Değiştir
-      (0.73, 0.09, 0.53, 229.0, 0.8), // Karıştır
-      (0.73, 0.52, 0.099, 229.0, 0.8), // Parti
+      (0.17, 0.08, 0.53, 236.0, 0.8),
+      (0.17, 0.52, 0.099, 236.0, 0.8),
+      (0.45, 0.09, 0.53, 236.0, 0.83),
+      (0.45, 0.52, 0.099, 236.0, 0.83),
+      (0.73, 0.09, 0.53, 229.0, 0.8),
+      (0.73, 0.52, 0.099, 229.0, 0.8),
     ];
 
     return Scaffold(

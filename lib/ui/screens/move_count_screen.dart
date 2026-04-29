@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../logic/providers/game_provider.dart';
 import '../../router/app_router.dart';
+import '../widgets/press_3d_button.dart';
 
 class MoveCountScreen extends ConsumerWidget {
   final int gridSize;
@@ -36,11 +37,19 @@ class MoveCountScreen extends ConsumerWidget {
               top: size.height * 0.225,
               left: size.width * 0.05,
               right: size.width * 0.05,
-              child: GestureDetector(
+              child: Press3DButton(
                 onTap: () => _selectMoveCount(context, ref, 15),
-                child: Container(
-                  height: 200,
-                  color: Colors.transparent,
+                height: 200,
+                color: Colors.transparent,
+                depthColor: Colors.black,
+                depth: 7,
+                leftDepth: 3,
+                tornAmplitude: 10,
+                tornSegments: 28,
+                tornSeed: 5,
+                child: Image.asset(
+                  'assets/images/btn_move_15.png',
+                  fit: BoxFit.fill,
                 ),
               ),
             ),
@@ -50,11 +59,19 @@ class MoveCountScreen extends ConsumerWidget {
               top: size.height * 0.48,
               left: size.width * 0.06,
               right: size.width * 0.05,
-              child: GestureDetector(
+              child: Press3DButton(
                 onTap: () => _selectMoveCount(context, ref, 20),
-                child: Container(
-                  height: 205,
-                  color: Colors.transparent,
+                height: 205,
+                color: Colors.transparent,
+                depthColor: Colors.black,
+                depth: 7,
+                leftDepth: 3,
+                tornAmplitude: 10,
+                tornSegments: 28,
+                tornSeed: 13,
+                child: Image.asset(
+                  'assets/images/btn_move_20.png',
+                  fit: BoxFit.fill,
                 ),
               ),
             ),
@@ -64,11 +81,19 @@ class MoveCountScreen extends ConsumerWidget {
               top: size.height * 0.74,
               left: size.width * 0.06,
               right: size.width * 0.05,
-              child: GestureDetector(
+              child: Press3DButton(
                 onTap: () => _selectMoveCount(context, ref, 25),
-                child: Container(
-                  height: 195,
-                  color: Colors.transparent,
+                height: 195,
+                color: Colors.transparent,
+                depthColor: Colors.black,
+                depth: 7,
+                leftDepth: 3,
+                tornAmplitude: 10,
+                tornSegments: 28,
+                tornSeed: 21,
+                child: Image.asset(
+                  'assets/images/btn_move_25.png',
+                  fit: BoxFit.fill,
                 ),
               ),
             ),

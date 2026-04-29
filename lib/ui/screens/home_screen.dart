@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../logic/providers/player_provider.dart';
 import '../../router/app_router.dart';
+import '../widgets/press_3d_button.dart';
+import '../widgets/pressable_area.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -63,22 +65,36 @@ class HomeScreen extends ConsumerWidget {
               top: size.height * 0.075,
               left: size.width * 0.075,
               right: size.width * 0.36,
-              child: GestureDetector(
+              child: Press3DButton(
                 onTap: () => _showRenameDialog(context, ref, username),
-                child: Container(
-                  height: 55,
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  color: Colors.transparent,
-                  child: Text(
-                    username,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                height: 55,
+                color: Colors.transparent,
+                depthColor: Colors.black,
+                depth: 8,
+                borderRadius: const BorderRadius.all(Radius.circular(6)),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      'assets/images/btn_username.png',
+                      fit: BoxFit.fill,
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          username,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -88,11 +104,16 @@ class HomeScreen extends ConsumerWidget {
               top: size.height * 0.515,
               left: size.width * 0.1,
               right: size.width * 0.1,
-              child: GestureDetector(
+              child: Press3DButton(
                 onTap: () => context.push(AppRoutes.gridSize),
-                child: Container(
-                  height: 120,
-                  color: Colors.transparent,
+                height: 120,
+                color: Colors.transparent,
+                depthColor: Colors.black,
+                depth: 7,
+                borderRadius: const BorderRadius.all(Radius.circular(6)),
+                child: Image.asset(
+                  'assets/images/btn_new_game.png',
+                  fit: BoxFit.fill,
                 ),
               ),
             ),
@@ -102,25 +123,34 @@ class HomeScreen extends ConsumerWidget {
               top: size.height * 0.671,
               left: size.width * 0.1,
               right: size.width * 0.1,
-              child: GestureDetector(
+              child: Press3DButton(
                 onTap: () => context.push(AppRoutes.score),
-                child: Container(
-                  height: 122,
-                  color: Colors.transparent,
+                height: 122,
+                color: Colors.transparent,
+                depthColor: Colors.black,
+                depth: 7,
+                borderRadius: const BorderRadius.all(Radius.circular(6)),
+                child: Image.asset(
+                  'assets/images/btn_score.png',
+                  fit: BoxFit.fill,
                 ),
               ),
             ),
 
-            // Market butonu
+            // Market butonu — 3D test
             Positioned(
               top: size.height * 0.83,
               left: size.width * 0.1,
               right: size.width * 0.1,
-              child: GestureDetector(
+              child: Press3DButton(
                 onTap: () => context.push(AppRoutes.market),
-                child: Container(
-                  height: 120,
-                  color: Colors.transparent,
+                height: 120,
+                color: const Color(0xFFE53935),
+                depthColor: Colors.black,
+                depth: 8,
+                child: Image.asset(
+                  'assets/images/btn_market.png',
+                  fit: BoxFit.fill,
                 ),
               ),
             ),

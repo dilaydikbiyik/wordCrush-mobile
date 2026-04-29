@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../router/app_router.dart';
+import '../widgets/press_3d_button.dart';
 
 class GridSizeScreen extends StatelessWidget {
   const GridSizeScreen({super.key});
@@ -32,11 +33,19 @@ class GridSizeScreen extends StatelessWidget {
               top: size.height * 0.235,
               left: size.width * 0.08,
               right: size.width * 0.1,
-              child: GestureDetector(
+              child: Press3DButton(
                 onTap: () => _selectGrid(context, 6),
-                child: Container(
-                  height: 195,
-                  color: Colors.transparent,
+                height: 195,
+                color: Colors.transparent,
+                depthColor: Colors.black,
+                depth: 6,
+                leftDepth: 3,
+                tornAmplitude: 10,
+                tornSegments: 28,
+                tornSeed: 12,
+                child: Image.asset(
+                  'assets/images/btn_grid_hard.png',
+                  fit: BoxFit.fill,
                 ),
               ),
             ),
@@ -46,11 +55,19 @@ class GridSizeScreen extends StatelessWidget {
               top: size.height * 0.495,
               left: size.width * 0.08,
               right: size.width * 0.1,
-              child: GestureDetector(
+              child: Press3DButton(
                 onTap: () => _selectGrid(context, 8),
-                child: Container(
-                  height: 192,
-                  color: Colors.transparent,
+                height: 192,
+                color: Colors.transparent,
+                depthColor: Colors.black,
+                depth: 7,
+                leftDepth: 3,
+                tornAmplitude: 10,
+                tornSegments: 28,
+                tornSeed: 11,
+                child: Image.asset(
+                  'assets/images/btn_grid_medium.png',
+                  fit: BoxFit.fill,
                 ),
               ),
             ),
@@ -60,11 +77,19 @@ class GridSizeScreen extends StatelessWidget {
               top: size.height * 0.745,
               left: size.width * 0.08,
               right: size.width * 0.1,
-              child: GestureDetector(
+              child: Press3DButton(
                 onTap: () => _selectGrid(context, 10),
-                child: Container(
-                  height: 192,
-                  color: Colors.transparent,
+                height: 192,
+                color: Colors.transparent,
+                depthColor: Colors.black,
+                depth: 7,
+                leftDepth: 3,
+                tornAmplitude: 10,
+                tornSegments: 28,
+                tornSeed: 15,
+                child: Image.asset(
+                  'assets/images/btn_grid_easy.png',
+                  fit: BoxFit.fill,
                 ),
               ),
             ),
