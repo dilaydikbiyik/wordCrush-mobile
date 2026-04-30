@@ -122,6 +122,20 @@ class _GameScreenState extends ConsumerState<GameScreen>
     return (row, col);
   }
 
+  /// Tap için hücre hesabı — swiping'deki %70 iç bölge filtresi olmadan.
+  /// Joker tap seçimlerinde kullanılır, tüm hücre alanı kabul edilir.
+  (int, int)? _cellFromTap(Offset localPos) {
+    final box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return null;
+    final size = box.size;
+    final gridSize = ref.read(gridProvider).grid.size;
+    final cellW = size.width / gridSize;
+    final cellH = size.height / gridSize;
+    final col = (localPos.dx / cellW).floor().clamp(0, gridSize - 1);
+    final row = (localPos.dy / cellH).floor().clamp(0, gridSize - 1);
+    return (row, col);
+  }
+
   void _onPanStart(DragStartDetails d) {
     if (_activeJokerType != null) return;
     final box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
@@ -312,28 +326,38 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) return;
     final local = box.globalToLocal(details.globalPosition);
-    final pos = _cellFromOffset(local);
+    // Tap için %70 iç bölge filtresi yok — tüm hücre alanı kabul edilir
+    final pos = _cellFromTap(local);
     if (pos == null) return;
 
     final cell = ref.read(gridProvider).grid.getCell(pos.$1, pos.$2);
     if (cell.isEmpty) return;
 
     if (JokerExecutor.requiresTwoTargets(_activeJokerType!)) {
-      // Swap: need two cells
+      // Swap: iki hücre seç
       if (_jokerFirstCell == null) {
+        // İlk hücreyi seç ve görsel geri bildirim ver
         setState(() => _jokerFirstCell = cell);
+        ref.read(audioProvider.notifier).playSound(SoundType.letterSelect);
         return;
       }
-      // Second cell must be adjacent
+      // Aynı hücreye tekrar tap → seçimi iptal et
+      if (_jokerFirstCell!.row == cell.row && _jokerFirstCell!.col == cell.col) {
+        setState(() => _jokerFirstCell = null);
+        return;
+      }
+      // İkinci hücre komşu olmalı
       if (!_jokerFirstCell!.isAdjacentTo(cell)) {
-        setState(() => _jokerFirstCell = null); // Reset
+        // Komşu değilse, tıklanan hücreyi yeni birinci hücre yap
+        setState(() => _jokerFirstCell = cell);
+        ref.read(audioProvider.notifier).playSound(SoundType.letterSelect);
         return;
       }
       final used = ref.read(jokerProvider.notifier).useJoker(_activeJokerType!);
       if (!used) { _cancelJokerMode(); return; }
       _executeJoker(_activeJokerType!, _jokerFirstCell, cell);
     } else {
-      // Single target (Lollipop, Wheel)
+      // Tek hedef (Lolipop, Tekerlek)
       final used = ref.read(jokerProvider.notifier).useJoker(_activeJokerType!);
       if (!used) { _cancelJokerMode(); return; }
       _executeJoker(_activeJokerType!, cell, null);
@@ -546,7 +570,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 right: size.width * 0.04,
                 child: GestureDetector(
                     onTap: () {
-                      ref.read(audioProvider.notifier).playSound(SoundType.letterSelect);
+                      ref.read(audioProvider.notifier).playSound(SoundType.buttonTap);
                       context.push(AppRoutes.market);
                     },
                     child: Container(
@@ -614,6 +638,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 child: _InfoBox(
                   title: 'KALAN\nKELİME',
                   label: '${gridState.formableWordCount}',
+                  titleSpacing: 0,
+                  labelYOffset: -4,
                 ),
               ),
 
@@ -655,6 +681,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                             explodingCells: _explodingCells,
                             lollipopSlamPos: _lollipopSlamPos,
                             lollipopSlamSize: _lollipopSlamSize,
+                            jokerFirstCell: _jokerFirstCell,
                           ),
                         ),
                         if (_lastScore != null && _gridOverlay != Colors.transparent)
@@ -885,6 +912,8 @@ class _GridWidget extends StatefulWidget {
   final List<Cell> explodingCells;
   final Offset? lollipopSlamPos;
   final double lollipopSlamSize;
+  /// Swap joker'ın ilk seçilen hücresi — turuncu vurgulu gösterilir.
+  final Cell? jokerFirstCell;
 
   const _GridWidget({
     required this.gridState,
@@ -892,6 +921,7 @@ class _GridWidget extends StatefulWidget {
     this.explodingCells = const [],
     this.lollipopSlamPos,
     this.lollipopSlamSize = 0,
+    this.jokerFirstCell,
   });
 
   @override
@@ -956,6 +986,9 @@ class _GridWidgetState extends State<_GridWidget> {
                   isSelected: selected.contains(cell),
                   selectionIndex: selected.contains(cell) ? selected.indexOf(cell) : -1,
                   totalSelected: selected.length,
+                  isJokerTarget: widget.jokerFirstCell != null &&
+                      widget.jokerFirstCell!.row == cell.row &&
+                      widget.jokerFirstCell!.col == cell.col,
                 ),
               ),
 
@@ -1029,12 +1062,15 @@ class _CellTile extends StatelessWidget {
   final bool isSelected;
   final int selectionIndex;
   final int totalSelected;
+  /// Swap joker için seçilen ilk hücre ise true — turuncu vurgu gösterilir.
+  final bool isJokerTarget;
 
   const _CellTile({
     required this.cell,
     required this.isSelected,
     required this.selectionIndex,
     required this.totalSelected,
+    this.isJokerTarget = false,
   });
 
   @override
@@ -1043,7 +1079,11 @@ class _CellTile extends StatelessWidget {
     Color textColor = Colors.black87;
     double elevation = 1;
 
-    if (isSelected) {
+    if (isJokerTarget) {
+      bgColor = const Color(0xFFFF8C00); // turuncu vurgu — swap ilk hücre
+      textColor = Colors.white;
+      elevation = 4;
+    } else if (isSelected) {
       bgColor = const Color(0xFF4A90D9);
       textColor = Colors.white;
       elevation = 4;
@@ -1058,8 +1098,12 @@ class _CellTile extends StatelessWidget {
         color: bgColor,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
-          color: isSelected ? const Color(0xFF2C5F8A) : Colors.black26,
-          width: isSelected ? 2 : 1,
+          color: isJokerTarget
+              ? const Color(0xFFCC5500)
+              : isSelected
+                  ? const Color(0xFF2C5F8A)
+                  : Colors.black26,
+          width: (isSelected || isJokerTarget) ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
@@ -1088,11 +1132,11 @@ class _CellTile extends StatelessWidget {
                 ),
                 if (cell.powerType != PowerType.none)
                   Positioned(
-                    right: 2,
-                    top: 2,
+                    right: 0,
+                    top: 0,
                     child: Icon(
                       _powerIcon(cell.powerType),
-                      size: 10,
+                      size: 14,
                       color: isSelected ? Colors.white70 : Colors.deepOrange,
                     ),
                   ),
@@ -1120,7 +1164,15 @@ class _CellTile extends StatelessWidget {
 class _InfoBox extends StatelessWidget {
   final String title;
   final String label;
-  const _InfoBox({required this.title, required this.label});
+  final double titleSpacing;
+  /// Sayıyı dikey eksen üzerinde kaydırır (px). Negatif = yukarı.
+  final double labelYOffset;
+  const _InfoBox({
+    required this.title,
+    required this.label,
+    this.titleSpacing = 1,
+    this.labelYOffset = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1133,6 +1185,7 @@ class _InfoBox extends StatelessWidget {
         children: [
           Text(
             title,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.w700,
@@ -1140,13 +1193,16 @@ class _InfoBox extends StatelessWidget {
               letterSpacing: 1.2,
             ),
           ),
-          const SizedBox(height: 1),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: Colors.black87,
+          SizedBox(height: titleSpacing),
+          Transform.translate(
+            offset: Offset(0, labelYOffset),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                color: Colors.black87,
+              ),
             ),
           ),
         ],
