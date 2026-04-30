@@ -107,6 +107,18 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final cellH = size.height / gridSize;
     final col = (localPos.dx / cellW).floor().clamp(0, gridSize - 1);
     final row = (localPos.dy / cellH).floor().clamp(0, gridSize - 1);
+
+    // Only register if touch lands within the inner 70% of the cell.
+    // This prevents accidental diagonal jumps when swiping along cell borders.
+    const innerRatio = 0.70;
+    const padding = (1.0 - innerRatio) / 2;
+    final localX = localPos.dx - col * cellW;
+    final localY = localPos.dy - row * cellH;
+    if (localX < cellW * padding || localX > cellW * (1 - padding) ||
+        localY < cellH * padding || localY > cellH * (1 - padding)) {
+      return null;
+    }
+
     return (row, col);
   }
 
@@ -1094,11 +1106,11 @@ class _CellTile extends StatelessWidget {
       case PowerType.rowClear:
         return Icons.swap_horiz;
       case PowerType.areaBlast:
-        return Icons.brightness_high; // Bomba hissiyatı
+        return Icons.emergency;
       case PowerType.columnClear:
         return Icons.swap_vert;
       case PowerType.megaBlast:
-        return Icons.settings; // Spec'teki çark simgesi
+        return Icons.stars;
       case PowerType.none:
         return Icons.circle;
     }
@@ -1345,14 +1357,21 @@ class _ComboPopupState extends State<_ComboPopup>
                     ],
                   ),
                   if (subText != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      subText,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white70,
-                        letterSpacing: 0.8,
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black26,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        subText,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 1.0,
+                        ),
                       ),
                     ),
                   ],

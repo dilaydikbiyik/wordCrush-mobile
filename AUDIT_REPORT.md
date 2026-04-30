@@ -12,7 +12,7 @@
 | 6     | Çıkış dialogu boş oyun kaydı yaratıyor               | ✅ Düzeltildi      | `wordCount == 0` ise `endGame()` çağrılmıyor                                      |
 | 8     | "Gridde Oluşturulabilir Kelime Sayısı" etiketi       | ⏭️ Atlandı         | Mevcut hali yeterli görüldü                                                       |
 | 15d   | Skor tablosu başlığı + boş kayıt yazısı arka plansız | ✅ Düzeltildi      | Her ikisine de bej Container + siyah border eklendi                               |
-| 3     | Power tile simgesi                                   | 🔄 Sonra Dönülecek | İkonlar eklendi ama tasarım arkadaşla birlikte gözden geçirilecek                 |
+| 3     | Power tile simgesi                                   | ✅ Düzeltildi      | `_CellTile`'a `Stack` overlay eklendi, her `PowerType` için simge gösteriliyor    |
 | 5     | Düşme animasyonu key hatası                          | ✅ Düzeltildi      | `_GridWidget` StatefulWidget'a çevrildi, yeni hücreler tepeden animasyonla iniyor |
 | 11    | ScoreScreen Riverpod'u bypass ediyor                 | ✅ Düzeltildi      | `gameRecordsProvider` eklendi, ekran artık reaktif                                |
 | 16    | Lint uyarıları (4 adet)                              | ✅ Düzeltildi      | `flutter analyze` artık `No issues found` veriyor                                 |
@@ -26,6 +26,8 @@
 | 22    | Audio race condition                                 | 🔄 Sonra Dönülecek | Sesler değiştikten sonra 14 ve 15c ile birlikte ele alınacak                      |
 | 19    | Username Türkçe karakter sapması                     | ✅ Düzeltildi      | `username.length` → `username.runes.length`                                       |
 | S5/S6 | Fix sonrası `wordCount` yanlış (0) dönüyordu         | ✅ Düzeltildi      | `ensureSolvable()` sonrası düzeltilmiş grid yeniden taranıyor, doğru sayı dönüyor |
+| 4     | Solvability isolate cache                            | ✅ Düzeltildi      | `_cachedTrie` ile Trie cache'leniyor, word list her seferinde kopyalanmıyor       |
+| 12    | Combo popup alt kelimeler gösterilmiyor              | ✅ Düzeltildi      | `subWords` siyah arka planlı beyaz bold yazıyla popup'ta gösteriliyor             |
 
 ---
 
@@ -54,50 +56,6 @@ Riverpod 3, `StateNotifier`'ı deprecated (kullanım dışı) saydı. Bu, projen
 **Sunum notu:** Hoca bu soruyu sorabilir. "Riverpod 2 kullandım çünkü 3'ün API'si değişkendir ve projenin teslim tarihi bu geçişe izin vermiyordu" gibi bilinçli bir cevap verebilmek için bu kararın netleştirilmesi gerekiyor.
 
 ---
-
-### 3. Özel Güç (Power Tile) Görsel İşareti Yok
-
-**Sorun nedir?**
-Mantık katmanı doğru çalışıyor: 4+ harfli kelime bulunduğunda `power_executor.dart` ve `grid_provider.dart:167` birlikte son harfin hücresine `PowerType` bilgisi (RowClear, AreaBlast, ColumnClear, MegaBlast) yazıyor.
-
-Ancak `_CellTile` widget'ı (her hücreyi ekranda çizen widget) bu bilgiyi **hiç kullanmıyor.** Hücre sadece harfi gösteriyor, güç simgesi yok.
-
-**Oyuncu ne görüyor?**
-4 harfli kelime buldu, harfler patladı, son harfin yerine… yine normal bir harf gelmiş gibi görünüyor. Oyuncu güç simgesinin orada olduğunu bilmiyor; kullanamıyor.
-
-**Spec ne diyor?**
-`PROJECT_INSTRUCTIONS.md §5`:
-| Kelime Uzunluğu | Simge |
-|---|---|
-| 4 harf | A ↔ |
-| 5 harf | A 💣 |
-| 6 harf | A ↕ |
-| 7+ harf | A ⚙ |
-
-**TODO'da ne yazıyor?**
-"Özel simge hücreleri ✅" — bu da **yanlış işaretlenmiş.**
-
-**Düzeltme:**
-`_CellTile` içinde `Stack` yapısı kurularak `cell.powerType != PowerType.none` koşulunda hücrenin üzerine simge overlay eklenmeli.
-
----
-
-### 4. Solvability Isolate Her Hamlede 60.000 Kelimeyi Kopyalıyor
-
-**Sorun nedir?**
-Her hamle sonrası grid'in çözülebilir olup olmadığı kontrol ediliyor — bu doğru bir yaklaşım. Ama nasıl çalıştığına bakılırsa:
-
-`grid_solver_isolate.dart:53-61`: `compute()` her çağrıda **tüm `wordList`'i** (~60.000 kelime) isolate'e gönderiyor. Isolate bu listeyi alıp **sıfırdan Trie inşa ediyor**, kontrolü yapıp sonucu döndürüyor.
-
-**Performans maliyeti:**
-
-- Her hamlede 60.000 kelime serialize edilip kopyalanıyor
-- Isolate içinde Trie yeniden build ediliyor (bu başlı başına ağır bir işlem)
-- 10×10 grid'de her hamlede bu döngü tekrarlanıyor
-
-**Sonuç:** Sunumda telefonun donması veya belirgin gecikme yaşanması ihtimali var. Özellikle 10×10 grid'de, yoğun hamle serilerinde bu fark edilecek kadar belirgin olabilir.
-
-**Doğru mimari:** Trie'nin bir kez build edilmiş halini paylaşmak — ama Flutter isolate'leri bellek paylaşamadığı için bu mimari açıdan uğraştırır. Alternatif olarak isolate'i kalıcı tutup (long-lived isolate) sadece grid matrisini göndermek daha verimli olurdu.
 
 ---
 
@@ -200,16 +158,6 @@ Sözlük `assets/data/turkish_words.txt` yüklenemezse veya ObjectBox başlatıl
 - **iOS emülatör son test** ve **sunum hazırlığı:** Bunlar kullanıcının yapması gerekiyor.
 
 ---
-
-### 12. Combo Popup Alt Kelimeleri Göstermiyor
-
-**Sorun nedir?**
-"ADANA" yazıldığında combo popup açılıyor: "4× COMBO! +21 puan" yazıyor.
-
-Hangi alt kelimelerin bulunduğu (ADANA, DANA, ANA, ADA) gösterilmiyor.
-
-**Neden önemli?**
-Oyuncu combo sistemini nasıl çalıştığını göremeden anlayamaz. Öğretici değil. Spec bunu zorunlu kılmıyor ama sunum için etkileyici bir detay olurdu.
 
 ---
 
@@ -344,8 +292,6 @@ Madde 8 ile bağlantılı. Hesaplama mantığı doğru (non-overlapping greedy, 
 | --- | -------------------------------- | ------------------------- | --------------- |
 | 1   | Riverpod 2 → 3 sürüm ihlali      | Spec ihlali               | 🔴 Kritik       |
 | 2   | Splash sahte progress bar        | ✅ Düzeltildi             | 🔴 Kritik       |
-| 3   | Power tile simgesi yok           | ✅ Düzeltildi             | 🔴 Kritik       |
-| 4   | Solvability isolate performans   | ✅ Düzeltildi             | 🟡 Orta         |
 | 5   | Düşme animasyonu key hatası      | Görsel kalite sorunu      | 🟡 Orta         |
 | 6   | Çıkış → boş kayıt                | Veri kirliliği            | 🟢 Düşük        |
 | 7   | Combo isimlendirme               | Bakım riski               | 🟢 Düşük        |
@@ -353,7 +299,6 @@ Madde 8 ile bağlantılı. Hesaplama mantığı doğru (non-overlapping greedy, 
 | 9   | UI polish 4 madde                | ✅ Düzeltildi             | 🟡 Plan dahili  |
 | 10  | Integration / performans testi   | ✅ Düzeltildi             | 🟡 Sunum öncesi |
 | 11  | ScoreScreen reaktif değil        | Mimari sorun              | 🟢 Düşük        |
-| 12  | Combo popup alt kelime yok       | ✅ Düzeltildi             | 🟢 Düşük        |
 | 13  | docs/ dosyaları doğrulanmadı     | ✅ Düzeltildi             | 🟢 Düşük        |
 | 14  | Power sesi çalmıyor              | ✅ Düzeltildi             | 🟢 Düşük        |
 | 15a | Hatalı kelimede hamle azalmıyor  | Karar bekleniyor          | 🟡 Orta         |
