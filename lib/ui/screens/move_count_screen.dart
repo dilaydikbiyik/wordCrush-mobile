@@ -37,8 +37,10 @@ class MoveCountScreen extends ConsumerWidget {
               top: size.height * 0.225,
               left: size.width * 0.05,
               right: size.width * 0.05,
-              child: Press3DButton(
-                onTap: () => _selectMoveCount(context, ref, 15),
+              child: _SlideFadeIn(
+                delay: 0,
+                child: Press3DButton(
+                  onTap: () => _selectMoveCount(context, ref, 15),
                 height: 200,
                 color: Colors.transparent,
                 depthColor: Colors.black,
@@ -51,6 +53,7 @@ class MoveCountScreen extends ConsumerWidget {
                   'assets/images/btn_move_15.png',
                   fit: BoxFit.fill,
                 ),
+                ),
               ),
             ),
 
@@ -59,8 +62,10 @@ class MoveCountScreen extends ConsumerWidget {
               top: size.height * 0.48,
               left: size.width * 0.06,
               right: size.width * 0.05,
-              child: Press3DButton(
-                onTap: () => _selectMoveCount(context, ref, 20),
+              child: _SlideFadeIn(
+                delay: 100,
+                child: Press3DButton(
+                  onTap: () => _selectMoveCount(context, ref, 20),
                 height: 205,
                 color: Colors.transparent,
                 depthColor: Colors.black,
@@ -73,6 +78,7 @@ class MoveCountScreen extends ConsumerWidget {
                   'assets/images/btn_move_20.png',
                   fit: BoxFit.fill,
                 ),
+                ),
               ),
             ),
 
@@ -81,8 +87,10 @@ class MoveCountScreen extends ConsumerWidget {
               top: size.height * 0.74,
               left: size.width * 0.06,
               right: size.width * 0.05,
-              child: Press3DButton(
-                onTap: () => _selectMoveCount(context, ref, 25),
+              child: _SlideFadeIn(
+                delay: 200,
+                child: Press3DButton(
+                  onTap: () => _selectMoveCount(context, ref, 25),
                 height: 195,
                 color: Colors.transparent,
                 depthColor: Colors.black,
@@ -95,11 +103,41 @@ class MoveCountScreen extends ConsumerWidget {
                   'assets/images/btn_move_25.png',
                   fit: BoxFit.fill,
                 ),
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SlideFadeIn extends StatelessWidget {
+  final Widget child;
+  final int delay;
+
+  const _SlideFadeIn({required this.child, this.delay = 0});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 800 + delay),
+      curve: Curves.easeOutBack,
+      builder: (context, value, childWidget) {
+        final normalizedValue = (value - (delay / (800 + delay))).clamp(0.0, 1.0) / (800 / (800 + delay));
+        final steppedValue = (normalizedValue * 6).round() / 6.0;
+
+        return Transform.translate(
+          offset: Offset(0, 40 * (1 - steppedValue)),
+          child: Opacity(
+            opacity: steppedValue.clamp(0.0, 1.0),
+            child: childWidget,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }

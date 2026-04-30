@@ -3,38 +3,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Sound effect types used throughout the game.
 enum SoundType {
-  /// Played when a letter cell is selected (soft tick).
   letterSelect,
-
-  /// Played when a valid word is confirmed (ascending arpeggio).
   validWord,
-
-  /// Played when an invalid word attempt is made (descending buzz).
   invalidWord,
-
-  /// Played on combo bonus (bright fanfare).
   combo,
-
-  /// Played when a special power or joker activates (dramatic sweep).
-  powerActivation,
-
-  /// Played when the game ends (descending 3-tone finisher).
+  powerActivation,  /// Satır/sütun temizleme (güç) aktivasyonları
+  jokerActivation,  /// Alt paneldeki joker aktivasyonları
   gameOver,
+  gameStart,
+  spinningCoin,
 }
 
 /// Maps each [SoundType] to its asset path under `assets/sounds/`.
 const _soundAssets = {
-  SoundType.letterSelect:    'sounds/letter_select.wav',
-  SoundType.validWord:       'sounds/valid_word.wav',
-  SoundType.invalidWord:     'sounds/invalid_word.wav',
-  SoundType.combo:           'sounds/combo.wav',
-  SoundType.powerActivation: 'sounds/power_activation.wav',
-  SoundType.gameOver:        'sounds/game_over.wav',
+  SoundType.letterSelect:    'sounds/select.mp3',
+  SoundType.validWord:       'sounds/valid_word.mp3',
+  SoundType.invalidWord:     'sounds/invalid_word.mp3',
+  SoundType.combo:           'sounds/combo.mp3',
+  SoundType.powerActivation: 'sounds/power_activation.mp3',
+  SoundType.jokerActivation: 'sounds/power_activationj.wav',
+  SoundType.gameOver:        'sounds/game_over.mp3',
+  SoundType.gameStart:       'sounds/game_start.mp3',
+  SoundType.spinningCoin:    'sounds/spinning_coin.mp3',
 };
 
 /// Immutable state for audio settings.
 class AudioState {
-  /// Whether all sounds are muted.
   final bool isMuted;
 
   const AudioState({this.isMuted = false});
@@ -44,54 +38,57 @@ class AudioState {
 }
 
 /// Manages audio playback and mute toggle using `audioplayers`.
-///
-/// Each [SoundType] maps to a dedicated [AudioPlayer] instance so that
-/// overlapping sounds (e.g. combo + letter_select) play without cutting
-/// each other off.
+/// Uses an "Audio Pool" architecture to prevent race conditions (Hata #22).
 class AudioNotifier extends StateNotifier<AudioState> {
-  /// One player per sound type to allow simultaneous playback.
-  final Map<SoundType, AudioPlayer> _players = {};
+  static const int _poolSize = 3;
+  final Map<SoundType, List<AudioPlayer>> _pools = {};
+  final Map<SoundType, int> _poolIndexes = {};
 
   AudioNotifier() : super(const AudioState()) {
-    // Pre-create players for all types
+    // Pre-create a pool of players for each type
     for (final type in SoundType.values) {
-      _players[type] = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+      _pools[type] = List.generate(
+        _poolSize,
+        (_) => AudioPlayer()..setReleaseMode(ReleaseMode.stop),
+      );
+      _poolIndexes[type] = 0;
     }
   }
 
   @override
   void dispose() {
-    for (final player in _players.values) {
-      player.dispose();
+    for (final pool in _pools.values) {
+      for (final player in pool) {
+        player.dispose();
+      }
     }
     super.dispose();
   }
 
-  /// Toggles the mute state.
   void toggleMute() => state = state.copyWith(isMuted: !state.isMuted);
-
-  /// Sets mute status explicitly.
   void setMuted(bool muted) => state = state.copyWith(isMuted: muted);
 
-  /// Plays a sound effect of [type].
-  ///
-  /// No-op when muted. Uses [AssetSource] so the file is read from the
-  /// Flutter asset bundle without any additional permissions.
   Future<void> playSound(SoundType type) async {
     if (state.isMuted) return;
     final asset = _soundAssets[type];
     if (asset == null) return;
+    
     try {
-      final player = _players[type]!;
+      final pool = _pools[type]!;
+      final idx = _poolIndexes[type]!;
+      final player = pool[idx];
+      
       await player.stop();
       await player.play(AssetSource(asset));
+      
+      // Move to the next player in the pool
+      _poolIndexes[type] = (idx + 1) % _poolSize;
     } catch (_) {
-      // Silently ignore audio errors — game must not crash over sound
+      // Silently ignore audio errors
     }
   }
 }
 
-/// Provider for audio settings and playback.
 final audioProvider =
     StateNotifierProvider<AudioNotifier, AudioState>((ref) {
   return AudioNotifier();

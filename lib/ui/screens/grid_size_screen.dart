@@ -33,8 +33,10 @@ class GridSizeScreen extends StatelessWidget {
               top: size.height * 0.235,
               left: size.width * 0.08,
               right: size.width * 0.1,
-              child: Press3DButton(
-                onTap: () => _selectGrid(context, 6),
+              child: _SlideFadeIn(
+                delay: 0,
+                child: Press3DButton(
+                  onTap: () => _selectGrid(context, 6),
                 height: 195,
                 color: Colors.transparent,
                 depthColor: Colors.black,
@@ -47,6 +49,7 @@ class GridSizeScreen extends StatelessWidget {
                   'assets/images/btn_grid_hard.png',
                   fit: BoxFit.fill,
                 ),
+                ),
               ),
             ),
 
@@ -55,8 +58,10 @@ class GridSizeScreen extends StatelessWidget {
               top: size.height * 0.495,
               left: size.width * 0.08,
               right: size.width * 0.1,
-              child: Press3DButton(
-                onTap: () => _selectGrid(context, 8),
+              child: _SlideFadeIn(
+                delay: 100,
+                child: Press3DButton(
+                  onTap: () => _selectGrid(context, 8),
                 height: 192,
                 color: Colors.transparent,
                 depthColor: Colors.black,
@@ -69,6 +74,7 @@ class GridSizeScreen extends StatelessWidget {
                   'assets/images/btn_grid_medium.png',
                   fit: BoxFit.fill,
                 ),
+                ),
               ),
             ),
 
@@ -77,8 +83,10 @@ class GridSizeScreen extends StatelessWidget {
               top: size.height * 0.745,
               left: size.width * 0.08,
               right: size.width * 0.1,
-              child: Press3DButton(
-                onTap: () => _selectGrid(context, 10),
+              child: _SlideFadeIn(
+                delay: 200,
+                child: Press3DButton(
+                  onTap: () => _selectGrid(context, 10),
                 height: 192,
                 color: Colors.transparent,
                 depthColor: Colors.black,
@@ -91,11 +99,41 @@ class GridSizeScreen extends StatelessWidget {
                   'assets/images/btn_grid_easy.png',
                   fit: BoxFit.fill,
                 ),
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SlideFadeIn extends StatelessWidget {
+  final Widget child;
+  final int delay;
+
+  const _SlideFadeIn({required this.child, this.delay = 0});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 800 + delay),
+      curve: Curves.easeOutBack,
+      builder: (context, value, childWidget) {
+        final normalizedValue = (value - (delay / (800 + delay))).clamp(0.0, 1.0) / (800 / (800 + delay));
+        final steppedValue = (normalizedValue * 6).round() / 6.0;
+
+        return Transform.translate(
+          offset: Offset(0, 40 * (1 - steppedValue)),
+          child: Opacity(
+            opacity: steppedValue.clamp(0.0, 1.0),
+            child: childWidget,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }

@@ -234,7 +234,7 @@
 - [x] Unit test: GridSolver (kelime bulma doğruluğu)
 - [x] Unit test: ScoreCalculator (puan hesaplama)
 - [x] Unit test: ComboEngine (alt kelime tespiti doğruluğu)
-- [ ] Integration test: Oyun akışı (başla → oyna → bitir → skor kaydet)
+- [x] Integration test: Oyun akışı (başla → oyna → bitir → skor kaydet)
 - [ ] Performans testi: 10×10 grid solvability tarama süresi
 - [x] Edge case: Grid'de kelime kalmama senaryoları
 - [x] Edge case: Altın yetersiz durumu (market)

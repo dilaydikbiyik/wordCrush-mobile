@@ -64,6 +64,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
   List<Cell> _explodingCells = [];
   Offset? _lollipopSlamPos;
   double _lollipopSlamSize = 0;
+  double _gridScale = 1.0;
 
   @override
   void initState() {
@@ -177,6 +178,12 @@ class _GameScreenState extends ConsumerState<GameScreen>
         ref.read(audioProvider.notifier).playSound(SoundType.combo);
       } else {
         ref.read(audioProvider.notifier).playSound(SoundType.validWord);
+      }
+
+      // Play power activation sound if a power cell was triggered
+      final usedPower = gridState.selectedCells.any((c) => c.powerType != PowerType.none);
+      if (usedPower) {
+        ref.read(audioProvider.notifier).playSound(SoundType.powerActivation);
       }
       
       final destroyed = ref.read(gridProvider.notifier).removeAndRefill(gridState.selectedCells);
@@ -321,6 +328,13 @@ class _GameScreenState extends ConsumerState<GameScreen>
     }
   }
 
+  void _pulseGrid() {
+    setState(() => _gridScale = 1.05);
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) setState(() => _gridScale = 1.0);
+    });
+  }
+
   void _executeJoker(String jokerType, Cell? target, Cell? second) {
     final grid = ref.read(gridProvider).grid;
     final executor = JokerExecutor();
@@ -348,9 +362,10 @@ class _GameScreenState extends ConsumerState<GameScreen>
       secondCell: second,
     );
     ref.read(gridProvider.notifier).setGrid(newGrid);
-    ref.read(audioProvider.notifier).playSound(SoundType.powerActivation);
-    // #15b: Joker görsel geri bildirimi — turuncu flash efekti
+    ref.read(audioProvider.notifier).playSound(SoundType.jokerActivation);
+    // #15b: Joker görsel geri bildirimi — turuncu flash efekti ve nabız
     _flashOrange();
+    _pulseGrid();
     _cancelJokerMode();
     _runSolvabilityCheck();
   }
@@ -407,6 +422,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
   void _showGameOverDialog(int finalScore, [int goldEarned = 0]) {
     ref.read(audioProvider.notifier).playSound(SoundType.gameOver);
+    if (goldEarned > 0) {
+      ref.read(audioProvider.notifier).playSound(SoundType.spinningCoin);
+    }
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -538,7 +556,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 right: size.width * 0.086,
                 width: size.width * 0.25,
                 child: _InfoBox(
-                  title: 'KELİME',
+                  title: 'KALAN\nKELİME',
                   label: '${gridState.formableWordCount}',
                 ),
               ),
@@ -548,9 +566,13 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 top: size.height * 0.305,
                 left: size.width * 0.075,
                 right: size.width * 0.075,
-                child: AspectRatio(
-                aspectRatio: 1.0,
-                child: GestureDetector(
+                child: AnimatedScale(
+                  scale: _gridScale,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.elasticOut,
+                  child: AspectRatio(
+                    aspectRatio: 1.0,
+                    child: GestureDetector(
                   onPanStart: _onPanStart,
                   onPanUpdate: _onPanUpdate,
                   onPanEnd: _onPanEnd,
@@ -598,6 +620,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                   ),
                 ),
                 ),
+              ),
               ),
 
               // Joker — Balık
@@ -1027,11 +1050,11 @@ class _CellTile extends StatelessWidget {
       case PowerType.rowClear:
         return Icons.swap_horiz;
       case PowerType.areaBlast:
-        return Icons.local_fire_department;
+        return Icons.brightness_high; // Bomba hissiyatı
       case PowerType.columnClear:
         return Icons.swap_vert;
       case PowerType.megaBlast:
-        return Icons.rocket_launch;
+        return Icons.settings; // Spec'teki çark simgesi
       case PowerType.none:
         return Icons.circle;
     }
