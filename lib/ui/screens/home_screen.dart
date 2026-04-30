@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../logic/providers/audio_provider.dart';
 import '../../logic/providers/player_provider.dart';
 import '../../router/app_router.dart';
 import '../widgets/press_3d_button.dart';
+import '../../logic/providers/audio_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -107,10 +107,8 @@ class HomeScreen extends ConsumerWidget {
               child: _SlideFadeIn(
                 delay: 0,
                 child: Press3DButton(
-                  onTap: () {
-                  ref.read(audioProvider.notifier).playSound(SoundType.gameStart);
-                  context.push(AppRoutes.gridSize);
-                },
+                  onTap: () => context.push(AppRoutes.gridSize),
+                  soundType: SoundType.gameStart,
                 height: 120,
                 color: Colors.transparent,
                 depthColor: Colors.black,

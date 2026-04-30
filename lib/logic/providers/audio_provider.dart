@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Sound effect types used throughout the game.
 enum SoundType {
-  letterSelect,
+  letterSelect,   /// Grid harf seçimi (swipe)
+  buttonTap,      /// UI butonu (menü, joker, market vb.)
   validWord,
   invalidWord,
   combo,
@@ -17,6 +18,7 @@ enum SoundType {
 /// Maps each [SoundType] to its asset path under `assets/sounds/`.
 const _soundAssets = {
   SoundType.letterSelect:    'sounds/select.mp3',
+  SoundType.buttonTap:       'sounds/button_tap.mp3',
   SoundType.validWord:       'sounds/valid_word.mp3',
   SoundType.invalidWord:     'sounds/invalid_word.mp3',
   SoundType.combo:           'sounds/combo.mp3',

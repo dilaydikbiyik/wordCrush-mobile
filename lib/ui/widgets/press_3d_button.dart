@@ -16,6 +16,8 @@ class Press3DButton extends ConsumerStatefulWidget {
   final int tornSegments;
   final int tornSeed;
   final Widget? child;
+  /// Butona basıldığında çalınacak ses. Varsayılan: [SoundType.buttonTap].
+  final SoundType soundType;
 
   const Press3DButton({
     super.key,
@@ -31,6 +33,7 @@ class Press3DButton extends ConsumerStatefulWidget {
     this.tornSegments = 24,
     this.tornSeed = 7,
     this.child,
+    this.soundType = SoundType.buttonTap,
   });
 
   @override
@@ -107,7 +110,7 @@ class _Press3DButtonState extends ConsumerState<Press3DButton> {
         onTapDown: (_) => setState(() => _pressed = true),
         onTapUp: (_) {
           setState(() => _pressed = false);
-          ref.read(audioProvider.notifier).playSound(SoundType.letterSelect);
+          ref.read(audioProvider.notifier).playSound(widget.soundType);
           widget.onTap();
         },
         onTapCancel: () => setState(() => _pressed = false),
@@ -167,7 +170,7 @@ class _Press3DButtonState extends ConsumerState<Press3DButton> {
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) {
         setState(() => _pressed = false);
-        ref.read(audioProvider.notifier).playSound(SoundType.letterSelect);
+        ref.read(audioProvider.notifier).playSound(widget.soundType);
         widget.onTap();
       },
       onTapCancel: () => setState(() => _pressed = false),
