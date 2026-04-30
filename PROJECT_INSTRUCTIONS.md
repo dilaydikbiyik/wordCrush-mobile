@@ -61,7 +61,7 @@ HashSet `O(1)` lookup sağlar ama prefix search yapamaz. Grid solvability tarama
 | Kategori | Teknoloji | Versiyon |
 |----------|-----------|----------|
 | Framework | Flutter (Dart) | Latest stable |
-| State Management | **Riverpod** | ^3.3.1 |
+| State Management | **Riverpod** | ^2.4.0 (3.x değil — StateNotifier API kararlılığı ve teslim tarihi nedeniyle 2.x tercih edildi) |
 | Veritabanı | **ObjectBox** | ^5.3.1 |
 | Router | go_router | Latest |
 | Animasyon | Lottie | Latest |

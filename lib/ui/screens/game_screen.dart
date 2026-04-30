@@ -181,12 +181,12 @@ class _GameScreenState extends ConsumerState<GameScreen>
     }
 
     if (trie.contains(word)) {
-      // Get combo sub-words, excluding main word to avoid double scoring
-      final allCombos = ComboEngine(trie).findComboWords(word);
-      final combos = allCombos.where((w) => w != word).toList();
-      final score = ScoreCalculator().calculateTotalScore(word, combos);
+      // allWords: main word + sub-words; subWords: only sub-words (for scoring/display)
+      final allWords = ComboEngine(trie).findComboWords(word);
+      final subWords = allWords.where((w) => w != word).toList();
+      final score = ScoreCalculator().calculateTotalScore(word, subWords);
 
-      debugPrint('\u2705 KABUL: "$word" \u2192 puan=$score, combo=${combos.join(", ")}');
+      debugPrint('\u2705 KABUL: "$word" \u2192 puan=$score, combo=${subWords.join(", ")}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('\u2705 KABUL: $word (+$score puan)'),
@@ -195,12 +195,12 @@ class _GameScreenState extends ConsumerState<GameScreen>
         ),
       );
 
-      ref.read(scoreProvider.notifier).addWordScore(score, combos);
+      ref.read(scoreProvider.notifier).addWordScore(score, subWords);
       ref.read(gameProvider.notifier).recordWord(word);
       ref.read(gameProvider.notifier).decrementMove();
 
-      // Play valid word sound (combo sound overrides if 2+ combos)
-      if (allCombos.length >= 2) {
+      // combo sesi: ana kelime dahil 2+ kelime varsa (yani en az 1 alt kelime)
+      if (allWords.length >= 2) {
         ref.read(audioProvider.notifier).playSound(SoundType.combo);
       } else {
         ref.read(audioProvider.notifier).playSound(SoundType.validWord);
@@ -211,9 +211,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
       if (usedPower) {
         ref.read(audioProvider.notifier).playSound(SoundType.powerActivation);
       }
-      
+
       final destroyed = ref.read(gridProvider.notifier).removeAndRefill(gridState.selectedCells);
-      
+
       if (destroyed.isNotEmpty) {
         setState(() => _explodingCells = destroyed);
         Future.delayed(const Duration(milliseconds: 500), () {
@@ -224,11 +224,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
       setState(() => _lastScore = score);
       _flashGreen();
 
-      // Show combo popup if 2+ combos found (including main word)
-      final totalCombos = allCombos.length;
-      if (totalCombos >= 2) {
-        // Pass sub-words (excluding main word) so popup can display them
-        _showComboPopup(totalCombos, score, combos);
+      if (allWords.length >= 2) {
+        _showComboPopup(allWords.length, score, subWords);
       }
 
       // Check solvability after grid changes
@@ -587,9 +584,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
                           ),
                         ],
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
+                        children: [
                           Icon(Icons.storefront_outlined, color: Colors.deepOrange, size: 18),
                           SizedBox(width: 4),
                           Text(

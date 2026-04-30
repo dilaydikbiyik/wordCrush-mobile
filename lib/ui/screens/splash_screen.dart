@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -45,12 +47,32 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   /// Hem trie yüklemesini hem minimum animasyon süresini paralel bekler.
   Future<void> _loadAndNavigate() async {
-    await Future.wait([
-      ref.read(trieProvider.future),
-      Future.delayed(const Duration(milliseconds: 2000)),
-    ]);
-    if (!mounted) return;
-    _navigate();
+    try {
+      await Future.wait([
+        ref.read(trieProvider.future),
+        Future.delayed(const Duration(milliseconds: 2000)),
+      ]);
+      if (!mounted) return;
+      _navigate();
+    } catch (e) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          title: const Text('Yükleme Hatası'),
+          content: const Text(
+            'Oyun sözlüğü yüklenemedi. Lütfen uygulamayı yeniden başlatın.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => exit(0),
+              child: const Text('Uygulamayı Kapat'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void _navigate() {
