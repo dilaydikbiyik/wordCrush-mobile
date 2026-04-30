@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../logic/providers/audio_provider.dart';
 import 'torn_edge_clipper.dart';
 
-class Press3DButton extends StatefulWidget {
+class Press3DButton extends ConsumerStatefulWidget {
   final VoidCallback onTap;
   final double height;
   final double? width;
@@ -32,10 +34,10 @@ class Press3DButton extends StatefulWidget {
   });
 
   @override
-  State<Press3DButton> createState() => _Press3DButtonState();
+  ConsumerState<Press3DButton> createState() => _Press3DButtonState();
 }
 
-class _Press3DButtonState extends State<Press3DButton> {
+class _Press3DButtonState extends ConsumerState<Press3DButton> {
   bool _pressed = false;
 
   bool get _torn => widget.tornAmplitude > 0;
@@ -105,6 +107,7 @@ class _Press3DButtonState extends State<Press3DButton> {
         onTapDown: (_) => setState(() => _pressed = true),
         onTapUp: (_) {
           setState(() => _pressed = false);
+          ref.read(audioProvider.notifier).playSound(SoundType.letterSelect);
           widget.onTap();
         },
         onTapCancel: () => setState(() => _pressed = false),
@@ -164,6 +167,7 @@ class _Press3DButtonState extends State<Press3DButton> {
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) {
         setState(() => _pressed = false);
+        ref.read(audioProvider.notifier).playSound(SoundType.letterSelect);
         widget.onTap();
       },
       onTapCancel: () => setState(() => _pressed = false),

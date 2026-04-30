@@ -173,34 +173,63 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _SlideFadeIn extends StatelessWidget {
+class _SlideFadeIn extends StatefulWidget {
   final Widget child;
   final int delay;
 
   const _SlideFadeIn({required this.child, this.delay = 0});
 
   @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 800 + delay),
-      curve: Curves.easeOutBack,
-      builder: (context, value, childWidget) {
-        // Delay effect
-        final normalizedValue = (value - (delay / (800 + delay))).clamp(0.0, 1.0) / (800 / (800 + delay));
-        
-        // Risograph / Stop-motion kağıt hissi: Değeri kademelendir (örneğin 6 adımda tamamlansın)
-        final steppedValue = (normalizedValue * 6).round() / 6.0;
+  State<_SlideFadeIn> createState() => _SlideFadeInState();
+}
 
+class _SlideFadeInState extends State<_SlideFadeIn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _fadeAnim;
+  late final Animation<double> _slideAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+
+    // easeOutCubic: overshoot yapmaz → buton yukarı kaçmaz
+    _fadeAnim = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
+    _slideAnim = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
+
+    // İlk frame render edildikten sonra, delay kadar bekleyip başlat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(Duration(milliseconds: widget.delay), () {
+        if (mounted) _ctrl.forward();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      child: widget.child,
+      builder: (context, child) {
         return Transform.translate(
-          offset: Offset(0, 40 * (1 - steppedValue)),
+          offset: Offset(0, 30 * (1 - _slideAnim.value)),
           child: Opacity(
-            opacity: steppedValue.clamp(0.0, 1.0),
-            child: childWidget,
+            opacity: _fadeAnim.value,
+            child: child,
           ),
         );
       },
-      child: child,
     );
   }
 }
+
