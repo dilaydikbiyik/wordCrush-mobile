@@ -528,7 +528,51 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 ),
               ),
 
+              // Market butonu — info box'ların hemen altında, sağ taraf
+              Positioned(
+                top: size.height * 0.225,
+                right: size.width * 0.04,
+                child: GestureDetector(
+                    onTap: () {
+                      ref.read(audioProvider.notifier).playSound(SoundType.letterSelect);
+                      context.push(AppRoutes.market);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5EFE0),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.black87, width: 1.5),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x55000000),
+                            blurRadius: 4,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.storefront_outlined, color: Colors.deepOrange, size: 18),
+                          SizedBox(width: 4),
+                          Text(
+                            'MARKET',
+                            style: TextStyle(
+                              fontFamily: 'Courier',
+                              fontWeight: FontWeight.w900,
+                              color: Colors.black87,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ),
+
               // Üst bar — skor
+
               Positioned(
                 top: size.height * 0.107,
                 left: size.width * 0.082,
