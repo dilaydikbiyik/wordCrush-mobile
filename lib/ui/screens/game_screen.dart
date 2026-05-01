@@ -136,17 +136,22 @@ class _GameScreenState extends ConsumerState<GameScreen>
     return (row, col);
   }
 
-  void _onPanStart(DragStartDetails d) {
+  void _onTapDown(TapDownDetails d) {
     if (_activeJokerType != null) return;
     final box = _gridKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) return;
     final local = box.globalToLocal(d.globalPosition);
-    final pos = _cellFromOffset(local);
+    final pos = _cellFromTap(local);
     ref.read(gridProvider.notifier).clearSelection();
     if (pos != null) {
       ref.read(gridProvider.notifier).selectCell(pos.$1, pos.$2);
       ref.read(audioProvider.notifier).playSound(SoundType.letterSelect);
     }
+  }
+
+  void _onPanStart(DragStartDetails d) {
+    // İlk hücre _onTapDown'da zaten seçildi — burada sadece gerekirse reset
+    if (_activeJokerType != null) return;
   }
 
   void _onPanUpdate(DragUpdateDetails d) {
@@ -652,6 +657,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                   child: AspectRatio(
                     aspectRatio: 1.0,
                     child: GestureDetector(
+                  onTapDown: _onTapDown,
                   onPanStart: _onPanStart,
                   onPanUpdate: _onPanUpdate,
                   onPanEnd: _onPanEnd,

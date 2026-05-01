@@ -7,48 +7,14 @@
 
 ## ✅ TAMAMLANAN / KAPATILAN MADDELER
 
-| #     | Madde                                                | Durum         | Not                                                                                                              |
-| ----- | ---------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------- |
-| 6     | Çıkış dialogu boş oyun kaydı yaratıyor               | ✅ Düzeltildi | `wordCount == 0` ise `endGame()` çağrılmıyor                                                                     |
-| 8     | "Gridde Oluşturulabilir Kelime Sayısı" etiketi       | ⏭️ Atlandı    | Mevcut hali yeterli görüldü                                                                                      |
-| 15d   | Skor tablosu başlığı + boş kayıt yazısı arka plansız | ✅ Düzeltildi | Her ikisine de bej Container + siyah border eklendi                                                              |
-| 3     | Power tile simgesi                                   | ✅ Düzeltildi | `_CellTile`'a `Stack` overlay eklendi, her `PowerType` için simge gösteriliyor                                   |
-| 5     | Düşme animasyonu key hatası                          | ✅ Düzeltildi | `_GridWidget` StatefulWidget'a çevrildi, yeni hücreler tepeden animasyonla iniyor                                |
-| 11    | ScoreScreen Riverpod'u bypass ediyor                 | ✅ Düzeltildi | `gameRecordsProvider` eklendi, ekran artık reaktif                                                               |
-| 16    | Lint uyarıları (4 adet)                              | ✅ Düzeltildi | `flutter analyze` artık `No issues found` veriyor                                                                |
-| 2     | Splash sözlük yüklemesi sahte                        | ✅ Düzeltildi | `trieProvider` splash'ta tetikleniyor, log ile doğrulandı                                                        |
-| 15a   | Hatalı kelimede hamle azalmıyor                      | ✅ Düzeltildi | 3+ harf yanlış kelimede `decrementMove()` çağrılıyor                                                             |
-| UX1   | Shake sonrası yeni seçim gecikmesi                   | ✅ Düzeltildi | `onPanStart` ile her gesture'da seçim sıfırlanıp ilk hücre ekleniyor                                             |
-| UX2   | Hücre seçim hassasiyeti (çapraz)                     | ✅ Düzeltildi | `floor()` + `clamp` ile kenar taşması giderildi, ilk hücre doğru seçiliyor                                       |
-| 14    | Power aktivasyon sesi                                | ✅ Düzeltildi | `game_screen.dart:196-198` seçili hücrede power tile varsa ses çalıyor                                           |
-| 20    | InfoBox + currentWord çakışma                        | ✅ Düzeltildi | `currentWord` pozisyonu aşağı kaydırıldı                                                                         |
-| 21    | fish joker magic number                              | ✅ Düzeltildi | `AppConstants.fishDeleteCount = 3` sabiti eklendi                                                                |
-| 22    | Audio race condition                                 | ✅ Düzeltildi | Audio pool mimarisi (`_poolSize = 3`) ile race condition giderildi                                               |
-| 19    | Username Türkçe karakter sapması                     | ✅ Düzeltildi | `username.length` → `username.runes.length`                                                                      |
-| S5/S6 | Fix sonrası `wordCount` yanlış (0) dönüyordu         | ✅ Düzeltildi | `ensureSolvable()` sonrası düzeltilmiş grid yeniden taranıyor, doğru sayı dönüyor                                |
-| 4     | Solvability isolate cache                            | ✅ Düzeltildi | `_cachedTrie` ile Trie cache'leniyor, word list her seferinde kopyalanmıyor                                      |
-| 12    | Combo popup alt kelimeler gösterilmiyor              | ✅ Düzeltildi | `subWords` siyah arka planlı beyaz bold yazıyla popup'ta gösteriliyor                                            |
-| 15c   | Ses efektleri yetersiz                               | ⏭️ Atlandı    | Mevcut sesler yeterli görüldü, değiştirilmeyecek                                                                 |
-| 17    | `Cell._idCounter` sonsuz büyüyen statik sayaç        | ✅ Düzeltildi | `resetIdCounter()` metodu mevcut, test izolasyonu sağlanmış                                                      |
-| 23    | `formableWordCount` etiketi spec metniyle uyuşmuyor  | ⏭️ Atlandı    | Spec tam metin vermemiş, "KALAN KELIME" etiketi yeterli görüldü                                                  |
-| 24    | Oyun sonu altın ödülü yok                            | ✅ Düzeltildi | `goldPerScore` sabiti + `addGold()` çağrısı eklendi, game_over dialogunda gösteriliyor                           |
-| 15    | Joker testleri yüzeysel                              | ✅ Düzeltildi | `joker_notifier_test.dart` eklendi: 12 test — useJoker, persistence, app-restart simülasyonu                     |
-| 10    | Integration / performans testi eksik                 | ✅ Düzeltildi | `game_flow_test.dart` eklendi: 11 test — tam oyun akışı, DB kayıt, hamle/kelime mantığı. Toplam 100 test geçiyor |
-| 13    | `docs/` rule dosyaları doğrulanmadı                  | ✅ Doğrulandı | `ui_rules.md`, `state_rules.md`, `game_engine_rules.md` mevcut ve spec kurallarını yansıtıyor                    |
-| 9a    | Renk paleti / tema yok                               | ✅ Doğrulandı | `AppTheme` sınıfı tam renk paleti ile mevcut, `main.dart`'ta kullanılıyor                                        |
-| 9b    | Responsive layout — BoxFit.fill                      | ⏭️ Atlandı    | `BoxFit.cover` denendi, görseller daha kötü göründü — mevcut hali yeterli                                        |
-| 9c    | Loading state — trieProvider                         | ✅ Doğrulandı | Splash zaten `trieProvider.future` ile trie'yi bekliyor                                                          |
-| 9d    | Error UI — yükleme hatası sessiz geçiyor             | ✅ Düzeltildi | `_loadAndNavigate` try/catch ile sarıldı, hata durumunda AlertDialog gösteriliyor                                |
-| 7     | Combo isimlendirme kafa karıştırıcı                  | ✅ Düzeltildi | `allCombos` → `allWords`, `combos` → `subWords` olarak yeniden adlandırıldı                                      |
-
----
-
-### 15b. Joker Animasyonu Yok
+### 15b. Joker Animasyonu + Shuffle Animasyonu Yok
 
 **Sorun nedir?**
 `game_screen.dart`'ta `_executeJoker` metodunda joker çalıştırıldıktan sonra hiçbir animasyon kodu yok. Grid hücreler aniden değişiyor.
 
 Örneğin Parti jokeri tüm harfleri silip yenilerini üstten düşürüyor — ama bu işlem animasyonsuz, anlık gerçekleşiyor. Balık, Tekerlek, Lolipop jokerlerinin de kendine özgü görsel efekti yok.
+
+Aynı şekilde shuffle (karıştır) butonu da hücreleri anlık değiştiriyor — hiçbir geçiş animasyonu yok.
 
 **TODO'da ne yazıyor?**
 `TODO.md` Phase 8'de `(OPSİYONEL) Joker kullanım animasyonu` olarak işaretsiz duruyor — doğru kayıtlı.
@@ -59,11 +25,115 @@ Her joker tipi için en azından basit bir efekt:
 - Silinen hücreler için `TweenAnimationBuilder` ile fade-out veya scale-down
 - Tekerlek için satır/sütun boyunca silme animasyonu
 - Parti için tüm grid'de cascade fade
+- Shuffle için hücrelerin kısa bir scale-out → shuffle → scale-in efekti
+
+---
+
+### UX3. Sayfa Geçişi Ses Gecikmesi
+
+**Sorun nedir?**
+Ana menü butonlarına basıldığında ses efekti gecikmeli çalıyor — sese tıklandıktan ~200–400ms sonra ses geliyor. Bu, ses dosyasının başında sessizlik bulunmasından kaynaklanıyor.
+
+**Ne yapılmalı?**
+Ses dosyalarının başındaki boş kısmı bir ses editörü ile (Audacity vb.) kırpılmalı. Kod tarafında önceden yükleme (`setSource` + `seek`) yapıldı ama ses dosyasındaki gecikme kod ile giderilemiyor.
+
+---
+
+### UX4. Onaylama Ekranları Görsel İyileştirme (Opsiyonel)
+
+**Sorun nedir?**
+Oyundan çıkış, joker kullanım onayı gibi `AlertDialog`'lar Flutter varsayılan görünümünde. Oyunun genel tasarımıyla uyumsuz.
+
+**Ne yapılmalı?**
+Özel styled dialog widget'ı: oyun temasına uygun arka plan, düğme stilleri, tipografi. Opsiyonel — temel işlevselliği etkilemiyor.
+
+---
+
+### UX5. GameScreen 3D Buton Eksikliği
+
+**Sorun nedir?**
+`game_screen.dart`'taki butonlar (shuffle, hamle göstergesi bölgesi vb.) düz Flutter butonları. Diğer ekranlardaki `Press3DButton` widget'ı kullanılmıyor.
+
+**Ne yapılmalı?**
+İlgili butonları `Press3DButton` ile sarmalayarak tutarlı görsel dil sağlanmalı.
+
+---
+
+### UX6. MarketScreen 3D Buton Eksikliği
+
+**Sorun nedir?**
+`market_screen.dart`'taki satın alma butonları düz tasarımda. `Press3DButton` kullanılmıyor.
+
+**Ne yapılmalı?**
+Market kartlarındaki butonları `Press3DButton` ile güncellemek görsel tutarlılık sağlar.
+
+---
+
+### UX7. Oyun Sonu Ekranı Görsel Yetersizliği
+
+**Sorun nedir?**
+`score_screen.dart` işlevsel ama görsel olarak zayıf. Skor, kelimeler ve altın gösterimi sadece metin bazlı; animasyon veya görsel öğe yok.
+
+**Ne yapılmalı?**
+- Skor açılış animasyonu (count-up efekti)
+- Altın kazanımı için kısa coin animasyonu
+- En uzun kelime vurgusu
+- Genel kart/panel tasarımı iyileştirmesi
+
+---
+
+### UX8. Marketten Satın Alırken Altın Sesi Yok
+
+**Sorun nedir?**
+Market ekranında joker veya altın paketi satın alındığında hiçbir ses çalmıyor. `spinningCoin` sesi mevcut ama tetiklenmiyor.
+
+**Ne yapılmalı?**
+`market_screen.dart`'ta satın alma işlemi başarılı olduğunda `audioProvider.playSound(SoundType.spinningCoin)` çağrılmalı.
+
+---
+
+### UX9. Market Hızlı Satın Alma + Joker Kullanım Animasyonu (Opsiyonel)
+
+**Sorun nedir?**
+Market ekranında "hızlı al" benzeri bir akış yok — her satın alma için onay adımları var. Ayrıca joker panelinde joker kullanıldığında görsel geri bildirim (animasyon) yok.
+
+**Ne yapılmalı?**
+- Market için tek tıkla satın alma seçeneği (onay atla) — opsiyonel
+- Joker ikonunun kullanım anında scale/shake animasyonu — opsiyonel
+
+---
+
+### UX10. Arka Plan Müziği Yok (Opsiyonel)
+
+**Sorun nedir?**
+Oyunun hiçbir ekranında arka plan müziği çalmıyor. Ses efektleri var ama ambiyans müziği eksik.
+
+**Ne yapılmalı?**
+`audioplayers` paketi loop modunu destekliyor. Oyun içi ve menü için ayrı ambient müzik dosyası eklenip `AudioNotifier`'a `playBgm` / `stopBgm` metotları eklenebilir. Opsiyonel — teslim kapsamı dışında.
+
+---
+
+### UX11. Geçersiz Kelime Emoji Render Sorunu
+
+**Sorun nedir?**
+Geçersiz kelime girildiğinde gösterilen popup/toast'ta emoji karakterleri render edilmiyor veya bozuk görünüyor (platform font desteği sorunu).
+
+**Ne yapılmalı?**
+Emoji yerine SVG/PNG ikonları veya Flutter `Icon` widget'ı kullanılmalı. Alternatif olarak `Text` widget'ındaki emoji, `RichText` + özel font ile render edilebilir.
 
 ---
 
 ## 💡 KALAN AÇIK MADDELER
 
-| #   | Yapılacak                                                    | Tahmini Süre |
-| --- | ------------------------------------------------------------ | ------------ |
-| 1   | Joker animasyonları (opsiyonel — fade-out, cascade efektler) | ~45 dk       |
+| #    | Yapılacak                                                                   | Öncelik    | Tahmini Süre |
+| ---- | --------------------------------------------------------------------------- | ---------- | ------------ |
+| 15b  | Joker + shuffle animasyonları (fade-out, cascade, scale efektler)           | Opsiyonel  | ~60 dk       |
+| UX3  | Ses dosyası başındaki sessizliği kırp (Audacity)                            | Düşük      | ~15 dk       |
+| UX4  | Onaylama dialog'larını oyun temasına uygun stilize et                       | Opsiyonel  | ~30 dk       |
+| UX5  | GameScreen butonlarını Press3DButton ile güncelle                           | Orta       | ~20 dk       |
+| UX6  | MarketScreen butonlarını Press3DButton ile güncelle                         | Orta       | ~20 dk       |
+| UX7  | Oyun sonu ekranı görsel iyileştirme (animasyon, kart tasarımı)              | Orta       | ~45 dk       |
+| UX8  | Marketten satın alırken spinningCoin sesi tetikle                           | Yüksek     | ~10 dk       |
+| UX9  | Market hızlı satın alma + joker kullanım animasyonu                         | Opsiyonel  | ~45 dk       |
+| UX10 | Arka plan müziği (loop BGM)                                                 | Opsiyonel  | ~60 dk       |
+| UX11 | Geçersiz kelime emoji render sorunu — ikon ile değiştir                     | Yüksek     | ~20 dk       |

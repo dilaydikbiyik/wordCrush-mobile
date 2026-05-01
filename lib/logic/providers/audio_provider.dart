@@ -47,12 +47,21 @@ class AudioNotifier extends StateNotifier<AudioState> {
   final Map<SoundType, int> _poolIndexes = {};
 
   AudioNotifier() : super(const AudioState()) {
-    // Pre-create a pool of players for each type
+    _initPools();
+  }
+
+  Future<void> _initPools() async {
     for (final type in SoundType.values) {
-      _pools[type] = List.generate(
-        _poolSize,
-        (_) => AudioPlayer()..setReleaseMode(ReleaseMode.stop),
-      );
+      final asset = _soundAssets[type];
+      final players = <AudioPlayer>[];
+      for (int i = 0; i < _poolSize; i++) {
+        final player = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+        if (asset != null) {
+          await player.setSource(AssetSource(asset));
+        }
+        players.add(player);
+      }
+      _pools[type] = players;
       _poolIndexes[type] = 0;
     }
   }
@@ -79,11 +88,10 @@ class AudioNotifier extends StateNotifier<AudioState> {
       final pool = _pools[type]!;
       final idx = _poolIndexes[type]!;
       final player = pool[idx];
-      
-      await player.stop();
-      await player.play(AssetSource(asset));
-      
-      // Move to the next player in the pool
+
+      await player.seek(Duration.zero);
+      await player.resume();
+
       _poolIndexes[type] = (idx + 1) % _poolSize;
     } catch (_) {
       // Silently ignore audio errors

@@ -223,7 +223,6 @@
   - [x] Oyun sonu sesi
 - [ ] UI polish:
   - [x] Uygun renk paleti ve tema tasarımı
-  - [ ] Responsive layout (farklı iPhone boyutları)
   - [x] Loading state'leri ve skeleton ekranları
   - [x] Error handling UI (hata mesajları)
 
