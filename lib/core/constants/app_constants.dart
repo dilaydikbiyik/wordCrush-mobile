@@ -11,7 +11,7 @@ class AppConstants {
   static const int hardMaxMoves = 15;
 
   // Gold
-  static const int initialGold = 5000;
+  static const int initialGold = 9000;
 
   /// Her [goldPerScore] puan için oyun sonunda 1 altın kazanılır.
   static const int goldPerScore = 10;

@@ -17,7 +17,9 @@ import '../../logic/scoring/combo_engine.dart';
 import '../../logic/scoring/score_calculator.dart';
 import '../../logic/powers/joker_executor.dart';
 import '../../logic/powers/power_type.dart';
+import '../../data/models/grid_model.dart';
 import '../../router/app_router.dart';
+import '../widgets/press_3d_button.dart';
 
 
 class GameScreen extends ConsumerStatefulWidget {
@@ -62,6 +64,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
   // Animation states
   List<Cell> _explodingCells = [];
+  List<(int, int)> _jokerAffectedPositions = [];
   Offset? _lollipopSlamPos;
   double _lollipopSlamSize = 0;
   double _gridScale = 1.0;
@@ -399,13 +402,60 @@ class _GameScreenState extends ConsumerState<GameScreen>
       targetCell: target,
       secondCell: second,
     );
+
+    // Direkt etkilenen hücre pozisyonlarını joker tipine göre hesapla
+    final affected = _jokerDirectPositions(jokerType, grid, newGrid, target, second);
+    setState(() => _jokerAffectedPositions = affected);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) setState(() => _jokerAffectedPositions = []);
+    });
+
     ref.read(gridProvider.notifier).setGrid(newGrid);
     ref.read(audioProvider.notifier).playSound(SoundType.jokerActivation);
-    // #15b: Joker görsel geri bildirimi — turuncu flash efekti ve nabız
-    _flashOrange();
     _pulseGrid();
     _cancelJokerMode();
     _runSolvabilityCheck();
+  }
+
+  List<(int, int)> _jokerDirectPositions(
+    String jokerType,
+    GridModel grid,
+    GridModel newGrid,
+    Cell? target,
+    Cell? second,
+  ) {
+    final size = grid.size;
+    switch (jokerType) {
+      case JokerType.lollipop:
+        return target != null ? [(target.row, target.col)] : [];
+      case JokerType.wheel:
+        if (target == null) return [];
+        return [
+          for (int i = 0; i < size; i++) (target.row, i),
+          for (int i = 0; i < size; i++)
+            if (i != target.row) (i, target.col),
+        ];
+      case JokerType.swap:
+        return [
+          if (target != null) (target.row, target.col),
+          if (second != null) (second.row, second.col),
+        ];
+      case JokerType.fish:
+        // Yeni grid'deki ID'leri topla; eski grid'de bu set'te olmayan = direkt silinen
+        final newIds = newGrid.allCells.map((c) => c.id).toSet();
+        return grid.allCells
+            .where((c) => !newIds.contains(c.id))
+            .map((c) => (c.row, c.col))
+            .toList();
+      case JokerType.shuffle:
+      case JokerType.party:
+        return [
+          for (int r = 0; r < size; r++)
+            for (int c = 0; c < size; c++) (r, c),
+        ];
+      default:
+        return [];
+    }
   }
 
   void _cancelJokerMode() {
@@ -429,13 +479,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
     });
   }
 
-  /// #15b: Joker kullanım görsel geri bildirimi — kısa turuncu flash.
-  void _flashOrange() {
-    setState(() => _gridOverlay = Colors.orange.withAlpha(70));
-    Future.delayed(const Duration(milliseconds: 400), () {
-      if (mounted) setState(() => _gridOverlay = Colors.transparent);
-    });
-  }
 
   /// Displays a floating combo banner above the grid when 2+ sub-words are found.
   ///
@@ -570,24 +613,21 @@ class _GameScreenState extends ConsumerState<GameScreen>
               Positioned(
                 top: size.height * 0.225,
                 right: size.width * 0.04,
-                child: GestureDetector(
-                    onTap: () {
-                      ref.read(audioProvider.notifier).playSound(SoundType.buttonTap);
-                      context.push(AppRoutes.market);
-                    },
+                child: IntrinsicWidth(
+                  child: Press3DButton(
+                    onTap: () => context.push(AppRoutes.market),
+                    height: 34,
+                    color: const Color(0xFFF5EFE0),
+                    depthColor: const Color(0xFF8B7355),
+                    depth: 4,
+                    rightDepth: 3,
+                    borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF5EFE0),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: Colors.black87, width: 1.5),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x55000000),
-                            blurRadius: 4,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
@@ -607,6 +647,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       ),
                     ),
                   ),
+                ),
               ),
 
               // Üst bar — skor
@@ -682,6 +723,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                             gridState: gridState,
                             overlay: _gridOverlay,
                             explodingCells: _explodingCells,
+                            jokerAffectedPositions: _jokerAffectedPositions,
                             lollipopSlamPos: _lollipopSlamPos,
                             lollipopSlamSize: _lollipopSlamSize,
                             jokerFirstCell: _jokerFirstCell,
@@ -811,21 +853,33 @@ class _GameScreenState extends ConsumerState<GameScreen>
                   ),
                 ),
 
-              // Çıkış butonu — hit area büyütüldü
+              // Çıkış butonu
               Positioned(
-                top: size.height * 0.04,
-                left: size.width * 0.03,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                top: size.height * 0.225,
+                left: size.width * 0.04,
+                child: Press3DButton(
                   onTap: _showExitDialog,
+                  height: 34,
+                  width: 34,
+                  color: const Color(0xFFF5EFE0),
+                  depthColor: const Color(0xFF8B7355),
+                  depth: 4,
+                  rightDepth: 3,
+                  borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    width: 48,
-                    height: 48,
                     decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(24),
+                      color: const Color(0xFFF5EFE0),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.black87, width: 1.5),
                     ),
-                    child: const Icon(Icons.close, color: Colors.white, size: 22),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Transform.scale(
+                        scaleX: -1,
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.logout, color: Colors.black87, size: 22),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -913,6 +967,7 @@ class _GridWidget extends StatefulWidget {
   final GridState gridState;
   final Color overlay;
   final List<Cell> explodingCells;
+  final List<(int, int)> jokerAffectedPositions;
   final Offset? lollipopSlamPos;
   final double lollipopSlamSize;
   /// Swap joker'ın ilk seçilen hücresi — turuncu vurgulu gösterilir.
@@ -922,6 +977,7 @@ class _GridWidget extends StatefulWidget {
     required this.gridState,
     required this.overlay,
     this.explodingCells = const [],
+    this.jokerAffectedPositions = const [],
     this.lollipopSlamPos,
     this.lollipopSlamSize = 0,
     this.jokerFirstCell,
@@ -1046,6 +1102,30 @@ class _GridWidgetState extends State<_GridWidget> {
                 ),
               ),
 
+            // Joker etki alanı turuncu flash
+            for (final pos in widget.jokerAffectedPositions)
+              Positioned(
+                left: pos.$2 * cellSize,
+                top: pos.$1 * cellSize,
+                width: cellSize,
+                height: cellSize,
+                child: TweenAnimationBuilder<double>(
+                  key: ValueKey('joker_flash_${pos.$1}_${pos.$2}'),
+                  tween: Tween(begin: 1.0, end: 0.0),
+                  duration: const Duration(milliseconds: 450),
+                  curve: Curves.easeOut,
+                  builder: (context, opacity, _) => IgnorePointer(
+                    child: Container(
+                      margin: const EdgeInsets.all(1),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withAlpha((opacity * 180).round()),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
             if (widget.overlay != Colors.transparent)
               Positioned.fill(
                 child: Container(
@@ -1080,41 +1160,49 @@ class _CellTile extends StatelessWidget {
   Widget build(BuildContext context) {
     Color bgColor = const Color(0xFFF5F0E8);
     Color textColor = Colors.black87;
-    double elevation = 1;
 
     if (isJokerTarget) {
-      bgColor = const Color(0xFFFF8C00); // turuncu vurgu — swap ilk hücre
+      bgColor = const Color(0xFFFF8C00);
       textColor = Colors.white;
-      elevation = 4;
     } else if (isSelected) {
       bgColor = const Color(0xFF4A90D9);
       textColor = Colors.white;
-      elevation = 4;
     }
 
     if (cell.isEmpty) bgColor = Colors.transparent;
 
+    final bool isPressed = isSelected || isJokerTarget;
+    final shadowColor = isJokerTarget
+        ? const Color(0xFF994400)
+        : isSelected
+            ? const Color(0xFF1A3D5C)
+            : const Color(0xFF5A4A3A);
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 100),
-      margin: const EdgeInsets.all(1),
+      margin: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
           color: isJokerTarget
               ? const Color(0xFFCC5500)
               : isSelected
                   ? const Color(0xFF2C5F8A)
-                  : Colors.black26,
+                  : Colors.black38,
           width: (isSelected || isJokerTarget) ? 2 : 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(30),
-            blurRadius: elevation * 2,
-            offset: Offset(0, elevation),
-          ),
-        ],
+        boxShadow: cell.isEmpty
+            ? []
+            : isPressed
+                ? [] // basılı → shadow yok, içe battı hissi
+                : [
+                    BoxShadow(
+                      color: shadowColor,
+                      offset: const Offset(3, 3),
+                      blurRadius: 0,
+                    ),
+                  ],
       ),
       child: cell.isEmpty
           ? null
@@ -1181,7 +1269,20 @@ class _InfoBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 58,
-      color: Colors.transparent,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0xFF3B2A1A),
+            offset: Offset(5, 5),
+            blurRadius: 0,
+          ),
+        ],
+        image: const DecorationImage(
+          image: AssetImage('assets/images/info_box_bg.png'),
+          fit: BoxFit.fill,
+        ),
+      ),
       alignment: Alignment.center,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1214,7 +1315,7 @@ class _InfoBox extends StatelessWidget {
   }
 }
 
-class _JokerBtn extends StatelessWidget {
+class _JokerBtn extends StatefulWidget {
   final String assetPath;
   final int quantity;
   final bool active;
@@ -1234,65 +1335,91 @@ class _JokerBtn extends StatelessWidget {
   });
 
   @override
+  State<_JokerBtn> createState() => _JokerBtnState();
+}
+
+class _JokerBtnState extends State<_JokerBtn> {
+  bool _localPressed = false;
+
+  bool get _showOrange => widget.isActiveMode || _localPressed;
+
+  Widget _buildImage() => OverflowBox(
+        alignment: widget.alignment,
+        minWidth: 0,
+        minHeight: 0,
+        maxWidth: widget.iconSize ?? double.infinity,
+        maxHeight: widget.iconSize ?? double.infinity,
+        child: Image.asset(widget.assetPath, width: widget.iconSize, height: widget.iconSize, fit: BoxFit.contain),
+      );
+
+  Widget _buildFaceContainer() => Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: const AssetImage('assets/images/joker_slot_bg.png'),
+            fit: BoxFit.cover,
+            colorFilter: _showOrange
+                ? ColorFilter.mode(Colors.orange.withAlpha(120), BlendMode.srcATop)
+                : null,
+          ),
+        ),
+        child: _buildImage(),
+      );
+
+  Widget _buildBadge() => Positioned(
+        top: -4,
+        right: -4,
+        child: Container(
+          width: 18,
+          height: 18,
+          decoration: const BoxDecoration(color: Colors.black87, shape: BoxShape.circle),
+          child: Center(
+            child: Text(
+              '${widget.quantity}',
+              style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+      );
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: active ? onTap : null,
-      child: Opacity(
-        opacity: active ? 1.0 : 0.35,
+    if (!widget.active) {
+      return Opacity(
+        opacity: 0.35,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                color: isActiveMode ? Colors.orange.withAlpha(40) : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
-                border: isActiveMode
-                    ? Border.all(color: Colors.orange, width: 2)
-                    : null,
-              ),
-              child: OverflowBox(
-                alignment: alignment,
-                minWidth: 0,
-                minHeight: 0,
-                maxWidth: iconSize ?? double.infinity,
-                maxHeight: iconSize ?? double.infinity,
-                child: Image.asset(
-                  assetPath,
-                  width: iconSize,
-                  height: iconSize,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            if (quantity > 0)
-              Positioned(
-                top: -4,
-                right: -4,
-                child: Container(
-                  width: 18,
-                  height: 18,
-                  decoration: const BoxDecoration(
-                    color: Colors.black87,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$quantity',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            _buildFaceContainer(),
+            if (widget.quantity > 0) _buildBadge(),
           ],
         ),
-      ),
+      );
+    }
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Listener(
+          onPointerDown: (_) => setState(() => _localPressed = true),
+          onPointerUp: (_) => setState(() => _localPressed = false),
+          onPointerCancel: (_) => setState(() => _localPressed = false),
+          child: LayoutBuilder(
+            builder: (_, constraints) => Press3DButton(
+              onTap: widget.onTap ?? () {},
+              height: constraints.maxHeight,
+              width: constraints.maxWidth,
+              color: const Color(0xFFC8BCA8),
+              depthColor: const Color(0xFF3B2A1A),
+              depth: 5,
+              rightDepth: 5,
+              borderRadius: BorderRadius.circular(19),
+              forcePressed: widget.isActiveMode,
+              child: _buildFaceContainer(),
+            ),
+          ),
+        ),
+        if (widget.quantity > 0) _buildBadge(),
+      ],
     );
   }
 }

@@ -11,6 +11,7 @@ class Press3DButton extends ConsumerStatefulWidget {
   final Color? depthColor;
   final double depth;
   final double leftDepth;
+  final double rightDepth;
   final BorderRadius borderRadius;
   final double tornAmplitude;
   final int tornSegments;
@@ -18,6 +19,8 @@ class Press3DButton extends ConsumerStatefulWidget {
   final Widget? child;
   /// Butona basıldığında çalınacak ses. Varsayılan: [SoundType.buttonTap].
   final SoundType soundType;
+  /// true iken buton kalıcı olarak basılı görünür (joker hedef seçim modu).
+  final bool forcePressed;
 
   const Press3DButton({
     super.key,
@@ -28,12 +31,14 @@ class Press3DButton extends ConsumerStatefulWidget {
     this.width,
     this.depth = 8,
     this.leftDepth = 0,
+    this.rightDepth = 0,
     this.borderRadius = const BorderRadius.all(Radius.circular(14)),
     this.tornAmplitude = 0,
     this.tornSegments = 24,
     this.tornSeed = 7,
     this.child,
     this.soundType = SoundType.buttonTap,
+    this.forcePressed = false,
   });
 
   @override
@@ -43,6 +48,7 @@ class Press3DButton extends ConsumerStatefulWidget {
 class _Press3DButtonState extends ConsumerState<Press3DButton> {
   bool _pressed = false;
 
+  bool get _isDown => _pressed || widget.forcePressed;
   bool get _torn => widget.tornAmplitude > 0;
 
   Color get _resolvedDepthColor {
@@ -103,6 +109,7 @@ class _Press3DButtonState extends ConsumerState<Press3DButton> {
   Widget build(BuildContext context) {
     final d = widget.depth;
     final ld = widget.leftDepth;
+    final rd = widget.rightDepth;
 
     if (_torn) {
       return GestureDetector(
@@ -124,7 +131,7 @@ class _Press3DButtonState extends ConsumerState<Press3DButton> {
                 bottom: 0, left: 0, right: 0,
                 height: widget.height,
                 child: AnimatedOpacity(
-                  opacity: _pressed ? 0.0 : 1.0,
+                  opacity: _isDown ? 0.0 : 1.0,
                   duration: const Duration(milliseconds: 80),
                   curve: Curves.easeOut,
                   child: ClipPath(
@@ -142,7 +149,7 @@ class _Press3DButtonState extends ConsumerState<Press3DButton> {
                 Positioned(
                   top: d, left: 0, width: ld, height: widget.height,
                   child: AnimatedOpacity(
-                    opacity: _pressed ? 0.0 : 1.0,
+                    opacity: _isDown ? 0.0 : 1.0,
                     duration: const Duration(milliseconds: 80),
                     curve: Curves.easeOut,
                     child: Container(color: _resolvedDepthColor),
@@ -152,9 +159,9 @@ class _Press3DButtonState extends ConsumerState<Press3DButton> {
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 80),
                 curve: Curves.easeOut,
-                top: _pressed ? d : 0,
+                top: _isDown ? d : 0,
                 left: ld,
-                right: 0,
+                right: rd,
                 height: widget.height,
                 child: _buildFace(),
               ),
@@ -179,7 +186,7 @@ class _Press3DButtonState extends ConsumerState<Press3DButton> {
         curve: Curves.easeOut,
         height: widget.height,
         width: widget.width,
-        transform: Matrix4.translationValues(0, _pressed ? d : 0, 0),
+        transform: Matrix4.translationValues(0, _isDown ? d : 0, 0),
         decoration: BoxDecoration(
           borderRadius: widget.borderRadius,
           gradient: widget.child == null
@@ -196,10 +203,10 @@ class _Press3DButtonState extends ConsumerState<Press3DButton> {
               : null,
           boxShadow: [
             BoxShadow(
-              color: _pressed
+              color: _isDown
                   ? _resolvedDepthColor.withValues(alpha: 0)
                   : _resolvedDepthColor,
-              offset: Offset(0, d),
+              offset: Offset(rd, d),
               blurRadius: 0,
             ),
           ],
