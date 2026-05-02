@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -207,7 +206,14 @@ class _GameScreenState extends ConsumerState<GameScreen>
       debugPrint('\u2705 KABUL: "$word" \u2192 puan=$score, combo=${subWords.join(", ")}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('\u2705 KABUL: $word (+$score puan)'),
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_outline,
+                  color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Text('KABUL: $word (+$score puan)'),
+            ],
+          ),
           duration: const Duration(seconds: 1),
           backgroundColor: Colors.green,
         ),
@@ -268,7 +274,14 @@ class _GameScreenState extends ConsumerState<GameScreen>
       debugPrint('\u274c RED: "$word" s\u00f6zl\u00fckte bulunamad\u0131');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('\u274c GE\u00c7ERSS\u0130Z: $word'),
+          content: Row(
+            children: [
+              const Icon(Icons.cancel_outlined,
+                  color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Text('GEÇERSİZ: $word'),
+            ],
+          ),
           duration: const Duration(seconds: 1),
           backgroundColor: Colors.red,
         ),
@@ -312,11 +325,13 @@ class _GameScreenState extends ConsumerState<GameScreen>
       _jokerFullGridOffsetY = 7.0;
     });
     Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) setState(() {
-        _jokerAnimationAsset  = null;
-        _jokerIsFullGrid      = false;
-        _jokerFullGridOffsetY = 0.0;
-      });
+      if (mounted) {
+        setState(() {
+          _jokerAnimationAsset  = null;
+          _jokerIsFullGrid      = false;
+          _jokerFullGridOffsetY = 0.0;
+        });
+      }
     });
   }
 
@@ -501,16 +516,18 @@ class _GameScreenState extends ConsumerState<GameScreen>
       _                 => const Duration(milliseconds: 800),
     };
     Future.delayed(hideDelay, () {
-      if (mounted) setState(() {
-        _jokerAffectedPositions = [];
-        _jokerAnimationAsset = null;
-        _jokerAnimationScale = 1.0;
-        _jokerSwapCenter = null;
-        _jokerIsFullGrid = false;
-        _jokerIsParty = false;
-        _jokerIsWheel = false;
-        _jokerFullGridOffsetY = 0.0;
-      });
+      if (mounted) {
+        setState(() {
+          _jokerAffectedPositions = [];
+          _jokerAnimationAsset = null;
+          _jokerAnimationScale = 1.0;
+          _jokerSwapCenter = null;
+          _jokerIsFullGrid = false;
+          _jokerIsParty = false;
+          _jokerIsWheel = false;
+          _jokerFullGridOffsetY = 0.0;
+        });
+      }
     });
 
     // Grid değişme gecikmesi — animasyon bitmeden grid değişmesin
@@ -1133,7 +1150,6 @@ class _GridWidget extends StatefulWidget {
 class _GridWidgetState extends State<_GridWidget> with TickerProviderStateMixin {
   final Map<int, int> _displayRows = {};
   AnimationController? _lottieController;
-  int _partyLoadedCount = 0; // kaç party Lottie instance'ı yüklendi
 
   @override
   void didUpdateWidget(_GridWidget oldWidget) {
@@ -1143,7 +1159,6 @@ class _GridWidgetState extends State<_GridWidget> with TickerProviderStateMixin 
     if (widget.jokerAnimationAsset != oldWidget.jokerAnimationAsset) {
       _lottieController?.stop();
       _lottieController?.dispose();
-      _partyLoadedCount = 0; // sayacı sıfırla
       if (widget.jokerAnimationAsset != null) {
         _lottieController = AnimationController(vsync: this);
       } else {

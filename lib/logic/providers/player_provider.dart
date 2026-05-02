@@ -93,10 +93,16 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
   /// Attempts to spend [amount] gold.
   ///
   /// Returns true if the balance was sufficient, false otherwise.
+  ///
+  /// DEV NOTE: bypass active for testing — re-enable balance check before release.
   bool spendGold(int amount) {
-    // TODO: remove before release
+    // TODO: remove before release — restore real check:
+    // if (state.goldBalance < amount) return false;
+    // state = state.copyWith(goldBalance: state.goldBalance - amount);
+    // _persistProfile();
     return true;
   }
+
 
   void _persistProfile() {
     final profile = PlayerProfile(

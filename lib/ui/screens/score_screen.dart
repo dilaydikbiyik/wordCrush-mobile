@@ -103,7 +103,7 @@ class ScoreScreen extends ConsumerWidget {
                       const SizedBox(height: 14),
 
                       // ── section divider ──
-                      _TornDivider(label: 'GEÇMİŞ OYUNLAR'),
+                      const _TornDivider(label: 'GEÇMİŞ OYUNLAR'),
 
                       const SizedBox(height: 10),
 
@@ -157,7 +157,7 @@ class _TopBar extends StatelessWidget {
               border: Border.all(color: _kBorder, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.55),
+                  color: Colors.black.withValues(alpha: 0.55),
                   blurRadius: 6,
                   offset: const Offset(3, 4),
                 ),
@@ -191,7 +191,7 @@ class _TopBar extends StatelessWidget {
                   border: Border.all(color: _kPaper, width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       blurRadius: 4,
                       offset: const Offset(2, 3),
                     ),
@@ -245,9 +245,9 @@ class _SummaryPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: _kInk.withOpacity(0.55),
+        color: _kInk.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _kPaper.withOpacity(0.3), width: 1),
+        border: Border.all(color: _kPaper.withValues(alpha: 0.3), width: 1),
       ),
       child: LayoutBuilder(
         builder: (ctx, constraints) {
@@ -289,7 +289,7 @@ class _StatCard extends StatelessWidget {
         border: Border.all(color: _kBorder, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 4,
             offset: const Offset(2, 3),
           ),
@@ -345,7 +345,7 @@ class _TornDivider extends StatelessWidget {
             height: 2,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.transparent, _kPaper.withOpacity(0.6)],
+                colors: [Colors.transparent, _kPaper.withValues(alpha: 0.6)],
               ),
             ),
           ),
@@ -357,7 +357,7 @@ class _TornDivider extends StatelessWidget {
           decoration: BoxDecoration(
             color: _kInk,
             borderRadius: BorderRadius.circular(3),
-            border: Border.all(color: _kPaper.withOpacity(0.5), width: 1),
+            border: Border.all(color: _kPaper.withValues(alpha: 0.5), width: 1),
           ),
           child: Text(
             label,
@@ -375,7 +375,7 @@ class _TornDivider extends StatelessWidget {
             height: 2,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [_kPaper.withOpacity(0.6), Colors.transparent],
+                colors: [_kPaper.withValues(alpha: 0.6), Colors.transparent],
               ),
             ),
           ),
@@ -403,14 +403,14 @@ class _EmptyState extends StatelessWidget {
             border: Border.all(color: _kBorder, width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 6,
                 offset: const Offset(3, 4),
               ),
             ],
           ),
-          child: Column(
-            children: const [
+          child: const Column(
+            children: [
               Icon(Icons.sports_esports_outlined,
                   size: 36, color: _kInkFaint),
               SizedBox(height: 8),
@@ -476,7 +476,7 @@ class _GameCard extends StatelessWidget {
         border: Border.all(color: _kBorder, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.45),
+            color: Colors.black.withValues(alpha: 0.45),
             blurRadius: 5,
             offset: const Offset(3, 4),
           ),
@@ -614,9 +614,9 @@ class _GameCard extends StatelessWidget {
                               const Icon(Icons.straighten_outlined,
                                   size: 11, color: _kInkFaint),
                               const SizedBox(width: 4),
-                              Text(
+                              const Text(
                                 'En uzun: ',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10,
                                   color: _kInkFaint,
                                   fontFamily: 'Courier',

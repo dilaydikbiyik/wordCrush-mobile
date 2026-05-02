@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../data/models/joker_inventory.dart';
+import '../../logic/providers/audio_provider.dart';
 import '../../logic/providers/joker_provider.dart';
 import '../../logic/providers/market_provider.dart';
 import '../../logic/providers/player_provider.dart';
@@ -21,12 +22,37 @@ class MarketScreen extends ConsumerWidget {
 
   void _purchase(BuildContext context, WidgetRef ref, String jokerType) {
     final result = ref.read(marketProvider.notifier).purchaseJoker(jokerType);
-    final msg = result == PurchaseResult.success
-        ? 'Satın alındı!'
-        : 'Yetersiz altın!';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), duration: const Duration(seconds: 1)),
-    );
+    if (result == PurchaseResult.success) {
+      // UX8: Play coin sound on successful purchase
+      ref.read(audioProvider.notifier).playSound(SoundType.spinningCoin);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text('Satın alındı!'),
+            ],
+          ),
+          duration: Duration(seconds: 1),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.money_off_outlined, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text('Yetersiz altın!'),
+            ],
+          ),
+          duration: Duration(seconds: 1),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
