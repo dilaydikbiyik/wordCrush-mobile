@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../logic/providers/audio_provider.dart';
 import '../../logic/providers/joker_provider.dart';
 import '../../logic/providers/player_provider.dart';
 import '../../logic/providers/trie_provider.dart';
@@ -78,6 +79,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (!mounted) return;
     ref.read(playerProvider.notifier).loadProfile();
     ref.read(jokerProvider.notifier).loadInventory();
+    ref.read(audioProvider.notifier).playBgm();
     final player = ref.read(playerProvider);
     if (player.isLoaded && player.username.isNotEmpty) {
       context.go(AppRoutes.home);

@@ -33,14 +33,22 @@ class JokerExecutor {
   ///
   /// Some jokers require a [targetCell] (Lollipop, Wheel) or
   /// [secondCell] (Swap). Returns the updated grid after the effect.
+  /// Pre-picks the cells that fish joker will remove, for preview purposes.
+  static List<Cell> pickFishCells(GridModel grid, {Random? random}) {
+    final rng = random ?? Random();
+    final nonEmpty = grid.allCells.where((c) => !c.isEmpty).toList()..shuffle(rng);
+    return nonEmpty.take(min(AppConstants.fishDeleteCount, nonEmpty.length)).toList();
+  }
+
   GridModel execute({
     required String jokerType,
     required GridModel grid,
     Cell? targetCell,
     Cell? secondCell,
+    List<Cell>? preselectedCells,
   }) {
     return switch (jokerType) {
-      JokerType.fish => _executeFish(grid),
+      JokerType.fish => _executeFish(grid, preselectedCells: preselectedCells),
       JokerType.wheel => _executeWheel(grid, targetCell!),
       JokerType.lollipop => _executeLollipop(grid, targetCell!),
       JokerType.swap => _executeSwap(grid, targetCell!, secondCell!),
@@ -66,12 +74,15 @@ class JokerExecutor {
   // Fish — Remove 3 random cells
   // ---------------------------------------------------------------------------
 
-  GridModel _executeFish(GridModel grid) {
-    final nonEmpty = grid.allCells.where((c) => !c.isEmpty).toList();
-    if (nonEmpty.isEmpty) return grid;
-
-    nonEmpty.shuffle(_random);
-    final toRemove = nonEmpty.take(min(AppConstants.fishDeleteCount, nonEmpty.length)).toList();
+  GridModel _executeFish(GridModel grid, {List<Cell>? preselectedCells}) {
+    final toRemove = (preselectedCells != null && preselectedCells.isNotEmpty)
+        ? preselectedCells
+        : () {
+            final nonEmpty = grid.allCells.where((c) => !c.isEmpty).toList()
+              ..shuffle(_random);
+            return nonEmpty.take(min(AppConstants.fishDeleteCount, nonEmpty.length)).toList();
+          }();
+    if (toRemove.isEmpty) return grid;
     return _gravityEngine.removeAndRefill(grid, toRemove);
   }
 

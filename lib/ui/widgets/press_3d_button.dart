@@ -21,6 +21,8 @@ class Press3DButton extends ConsumerStatefulWidget {
   final SoundType soundType;
   /// true iken buton kalıcı olarak basılı görünür (joker hedef seçim modu).
   final bool forcePressed;
+  /// false yapılırsa ses çalınmaz (dışarıdan ses yönetiliyorsa).
+  final bool playSoundOnTap;
 
   const Press3DButton({
     super.key,
@@ -39,6 +41,7 @@ class Press3DButton extends ConsumerStatefulWidget {
     this.child,
     this.soundType = SoundType.buttonTap,
     this.forcePressed = false,
+    this.playSoundOnTap = true,
   });
 
   @override
@@ -117,7 +120,9 @@ class _Press3DButtonState extends ConsumerState<Press3DButton> {
         onTapDown: (_) => setState(() => _pressed = true),
         onTapUp: (_) {
           setState(() => _pressed = false);
-          ref.read(audioProvider.notifier).playSound(widget.soundType);
+          if (widget.playSoundOnTap) {
+            ref.read(audioProvider.notifier).playSound(widget.soundType);
+          }
           widget.onTap();
         },
         onTapCancel: () => setState(() => _pressed = false),
@@ -177,7 +182,9 @@ class _Press3DButtonState extends ConsumerState<Press3DButton> {
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) {
         setState(() => _pressed = false);
-        ref.read(audioProvider.notifier).playSound(widget.soundType);
+        if (widget.playSoundOnTap) {
+          ref.read(audioProvider.notifier).playSound(widget.soundType);
+        }
         widget.onTap();
       },
       onTapCancel: () => setState(() => _pressed = false),

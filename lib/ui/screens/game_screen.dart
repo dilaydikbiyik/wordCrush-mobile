@@ -1,4 +1,6 @@
 
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -45,6 +47,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
   // Joker target selection state
   String? _activeJokerType;
   Cell? _jokerFirstCell;
+  Cell? _jokerSecondCell;
 
   static const _jokerTypes = [
     JokerType.fish,
@@ -67,6 +70,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
   // Animation states
   List<Cell> _explodingCells = [];
   List<(int, int)> _jokerAffectedPositions = [];
+  List<(int, int)> _wheelPreviewPositions = [];
+  List<(int, int)> _fishPreviewPositions = [];
+  List<Cell> _fishPreviewCells = [];
   String? _jokerAnimationAsset;
   double _jokerAnimationScale = 1.0;
   Offset? _jokerSwapCenter;
@@ -74,6 +80,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
   bool _jokerIsParty = false;
   bool _jokerIsWheel = false;
   double _jokerFullGridOffsetY = 0.0;
+  VoidCallback? _onLottieLoaded;
   Offset? _lollipopSlamPos;
   double _lollipopSlamSize = 0;
   double _gridScale = 1.0;
@@ -259,15 +266,19 @@ class _GameScreenState extends ConsumerState<GameScreen>
       if (gameState.isGameOver && !_gameOverHandled) {
         _gameOverHandled = true;
         final finalScore = ref.read(scoreProvider).totalScore;
-        // #24: Oyun sonunda puana göre altın ödülü ver
         final goldEarned = (finalScore / AppConstants.goldPerScore).round();
         if (goldEarned > 0) {
           ref.read(playerProvider.notifier).addGold(goldEarned);
         }
+        final wordCount = gameState.wordCount;
+        final longestWord = gameState.longestWord;
+        final durationSeconds = gameState.startTime != null
+            ? DateTime.now().difference(gameState.startTime!).inSeconds
+            : 0;
         ref.read(gameProvider.notifier).endGame(finalScore);
         Future.delayed(
           const Duration(milliseconds: 600),
-          () => _showGameOverDialog(finalScore, goldEarned),
+          () => _showGameOverDialog(finalScore, goldEarned, wordCount, longestWord, durationSeconds),
         );
       }
     } else {
@@ -296,15 +307,19 @@ class _GameScreenState extends ConsumerState<GameScreen>
       if (gameState.isGameOver && !_gameOverHandled) {
         _gameOverHandled = true;
         final finalScore = ref.read(scoreProvider).totalScore;
-        // #24: Oyun sonunda puana göre altın ödülü ver
         final goldEarned = (finalScore / AppConstants.goldPerScore).round();
         if (goldEarned > 0) {
           ref.read(playerProvider.notifier).addGold(goldEarned);
         }
+        final wordCount = gameState.wordCount;
+        final longestWord = gameState.longestWord;
+        final durationSeconds = gameState.startTime != null
+            ? DateTime.now().difference(gameState.startTime!).inSeconds
+            : 0;
         ref.read(gameProvider.notifier).endGame(finalScore);
         Future.delayed(
           const Duration(milliseconds: 600),
-          () => _showGameOverDialog(finalScore, goldEarned),
+          () => _showGameOverDialog(finalScore, goldEarned, wordCount, longestWord, durationSeconds),
         );
       }
     }
@@ -349,19 +364,27 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final jokerState = ref.read(jokerProvider);
     if (!jokerState.hasJoker(jokerType)) return;
 
-    ref.read(audioProvider.notifier).playSound(SoundType.buttonTap);
-
     // If already in this joker mode, cancel
     if (_activeJokerType == jokerType) {
       _cancelJokerMode();
       return;
     }
 
-    // Jokers that don't need target: execute immediately
+    // Jokers that don't need target: joker_select sesi bitince çalıştır (~1s)
     if (!JokerExecutor.requiresTarget(jokerType)) {
       final used = ref.read(jokerProvider.notifier).useJoker(jokerType);
       if (!used) return;
-      _executeJoker(jokerType, null, null);
+      if (jokerType == JokerType.fish) {
+        final grid = ref.read(gridProvider).grid;
+        final picked = JokerExecutor.pickFishCells(grid);
+        setState(() {
+          _fishPreviewCells = picked;
+          _fishPreviewPositions = picked.map((c) => (c.row, c.col)).toList();
+        });
+      }
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted) _executeJoker(jokerType, null, null);
+      });
       return;
     }
 
@@ -369,6 +392,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
     setState(() {
       _activeJokerType = jokerType;
       _jokerFirstCell = null;
+      _jokerSecondCell = null;
     });
   }
 
@@ -406,12 +430,27 @@ class _GameScreenState extends ConsumerState<GameScreen>
       }
       final used = ref.read(jokerProvider.notifier).useJoker(_activeJokerType!);
       if (!used) { _cancelJokerMode(); return; }
-      _executeJoker(_activeJokerType!, _jokerFirstCell, cell);
+      setState(() => _jokerSecondCell = cell);
+      Future.delayed(const Duration(milliseconds: 180), () {
+        if (mounted) _executeJoker(_activeJokerType!, _jokerFirstCell, cell);
+      });
     } else {
       // Tek hedef (Lolipop, Tekerlek)
       final used = ref.read(jokerProvider.notifier).useJoker(_activeJokerType!);
       if (!used) { _cancelJokerMode(); return; }
-      _executeJoker(_activeJokerType!, cell, null);
+      if (_activeJokerType == JokerType.wheel) {
+        final gridSize = ref.read(gridProvider).grid.size;
+        setState(() {
+          _wheelPreviewPositions = [
+            for (int i = 0; i < gridSize; i++) (cell.row, i),
+            for (int i = 0; i < gridSize; i++)
+              if (i != cell.row) (i, cell.col),
+          ];
+        });
+        _executeJoker(_activeJokerType!, cell, null);
+      } else {
+        _executeJoker(_activeJokerType!, cell, null);
+      }
     }
   }
 
@@ -423,7 +462,24 @@ class _GameScreenState extends ConsumerState<GameScreen>
   }
 
   void _executeJoker(String jokerType, Cell? target, Cell? second) {
-    ref.read(audioProvider.notifier).playSound(SoundType.jokerActivation);
+    final jokerSound = switch (jokerType) {
+      JokerType.fish     => SoundType.jokerFish,
+      JokerType.wheel    => SoundType.jokerWheel,
+      JokerType.lollipop => null, // Lottie onLoaded'da çalacak
+      JokerType.swap     => SoundType.jokerSwap,
+      JokerType.shuffle  => SoundType.jokerShuffle,
+      JokerType.party    => SoundType.jokerParty,
+      _                  => SoundType.jokerActivation,
+    };
+    if (jokerSound != null) {
+      ref.read(audioProvider.notifier).playSound(jokerSound);
+    }
+    if (jokerType == JokerType.lollipop) {
+      _onLottieLoaded = () =>
+          ref.read(audioProvider.notifier).playSound(SoundType.jokerLollipop);
+    } else {
+      _onLottieLoaded = null;
+    }
     final grid = ref.read(gridProvider).grid;
     final executor = JokerExecutor();
 
@@ -448,7 +504,14 @@ class _GameScreenState extends ConsumerState<GameScreen>
       grid: grid,
       targetCell: target,
       secondCell: second,
+      preselectedCells: jokerType == JokerType.fish ? _fishPreviewCells : null,
     );
+    if (jokerType == JokerType.fish) {
+      setState(() {
+        _fishPreviewPositions = [];
+        _fishPreviewCells = [];
+      });
+    }
 
     // Direkt etkilenen hücre pozisyonlarını joker tipine göre hesapla
     final affected = _jokerDirectPositions(jokerType, grid, newGrid, target, second);
@@ -515,13 +578,15 @@ class _GameScreenState extends ConsumerState<GameScreen>
     // Animasyon bitiş süresi joker tipine göre belirlenir
     final hideDelay = switch (jokerType) {
       JokerType.party   => const Duration(milliseconds: 2000), // konfeti tam oynasın
-      JokerType.shuffle => const Duration(milliseconds: 800),
+      JokerType.wheel   => const Duration(milliseconds: 1500), // ses ~1.5s
+      JokerType.shuffle => const Duration(milliseconds: 1150), // ses ~1.15s
       _                 => const Duration(milliseconds: 800),
     };
     Future.delayed(hideDelay, () {
       if (mounted) {
         setState(() {
           _jokerAffectedPositions = [];
+          _wheelPreviewPositions = [];
           _jokerAnimationAsset = null;
           _jokerAnimationScale = 1.0;
           _jokerSwapCenter = null;
@@ -535,15 +600,14 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
     // Grid değişme gecikmesi — animasyon bitmeden grid değişmesin
     final gridDelay = switch (jokerType) {
-      JokerType.wheel   => const Duration(milliseconds: 750),
-      JokerType.shuffle => const Duration(milliseconds: 700),
+      JokerType.wheel   => const Duration(milliseconds: 1500), // ses ~1.5s ile eşzamanlı
+      JokerType.shuffle => const Duration(milliseconds: 1150),  // animasyon dönerken harfler değişsin
       JokerType.party   => const Duration(milliseconds: 500),
       _                 => const Duration(milliseconds: 300),
     };
     Future.delayed(gridDelay, () {
       if (!mounted) return;
       ref.read(gridProvider.notifier).setGrid(newGrid);
-      ref.read(audioProvider.notifier).playSound(SoundType.jokerActivation);
       _pulseGrid();
       _cancelJokerMode();
       _runSolvabilityCheck();
@@ -595,6 +659,10 @@ class _GameScreenState extends ConsumerState<GameScreen>
     setState(() {
       _activeJokerType = null;
       _jokerFirstCell = null;
+      _jokerSecondCell = null;
+      _wheelPreviewPositions = [];
+      _fishPreviewPositions = [];
+      _fishPreviewCells = [];
     });
   }
 
@@ -634,43 +702,39 @@ class _GameScreenState extends ConsumerState<GameScreen>
     overlay.insert(entry);
   }
 
-  void _showGameOverDialog(int finalScore, [int goldEarned = 0]) {
+  void _showGameOverDialog(
+    int finalScore, [
+    int goldEarned = 0,
+    int wordCount = 0,
+    String longestWord = '',
+    int durationSeconds = 0,
+  ]) {
     ref.read(audioProvider.notifier).playSound(SoundType.gameOver);
     if (goldEarned > 0) {
       ref.read(audioProvider.notifier).playSound(SoundType.spinningCoin);
     }
+    final dur = durationSeconds < 60
+        ? '${durationSeconds}s'
+        : '${durationSeconds ~/ 60}d ${durationSeconds % 60}s';
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: const Text('Oyun Bitti!'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Toplam Puan: $finalScore'),
-            if (goldEarned > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  '🪙 +$goldEarned Altın Kazandın!',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFFFFB800),
-                  ),
-                ),
-              ),
-          ],
+      barrierColor: Colors.black.withAlpha(160),
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: _GameOverCard(
+          finalScore: finalScore,
+          goldEarned: goldEarned,
+          wordCount: wordCount,
+          longestWord: longestWord,
+          duration: dur,
+          onHome: () {
+            Navigator.pop(context);
+            context.go(AppRoutes.home);
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.go(AppRoutes.home);
-            },
-            child: const Text('Ana Menü'),
-          ),
-        ],
       ),
     );
   }
@@ -865,7 +929,10 @@ class _GameScreenState extends ConsumerState<GameScreen>
                             jokerAffectedPositions: _jokerAffectedPositions,
                             lollipopSlamPos: _lollipopSlamPos,
                             lollipopSlamSize: _lollipopSlamSize,
+                            wheelPreviewPositions: _wheelPreviewPositions,
+                            fishPreviewPositions: _fishPreviewPositions,
                             jokerFirstCell: _jokerFirstCell,
+                            jokerSecondCell: _jokerSecondCell,
                             jokerAnimationAsset: _jokerAnimationAsset,
                             jokerAnimationScale: _jokerAnimationScale,
                             jokerSwapCenter: _jokerSwapCenter,
@@ -873,6 +940,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
                             jokerIsParty: _jokerIsParty,
                             jokerIsWheel: _jokerIsWheel,
                             jokerFullGridOffsetY: _jokerFullGridOffsetY,
+                            onLottieLoaded: _onLottieLoaded,
+                            loopLottie: _jokerIsWheel || (_jokerIsFullGrid && !_jokerIsParty),
                           ),
                         ),
                         if (_lastScore != null && _gridOverlay != Colors.transparent)
@@ -904,7 +973,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.02,
                 right: size.width * 0.83,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[0], quantity: jokerState.getQuantity(_jokerTypes[0]), active: jokerState.getQuantity(_jokerTypes[0]) > 0, iconSize: 100, alignment: const Alignment(0.1, 0.05), isActiveMode: _activeJokerType == _jokerTypes[0], onTap: () => _onJokerTap(_jokerTypes[0])),
+                child: _JokerBtn(assetPath: _jokerAssets[0], quantity: jokerState.getQuantity(_jokerTypes[0]), active: jokerState.getQuantity(_jokerTypes[0]) > 0, iconSize: 100, alignment: const Alignment(0.1, 0.05), isActiveMode: _activeJokerType == _jokerTypes[0], onPointerDown: () => ref.read(audioProvider.notifier).playSound(SoundType.jokerSelect), onTap: () => _onJokerTap(_jokerTypes[0])),
               ),
               // Joker — Tekerlek
               Positioned(
@@ -912,7 +981,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.18,
                 right: size.width * 0.67,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[1], quantity: jokerState.getQuantity(_jokerTypes[1]), active: jokerState.getQuantity(_jokerTypes[1]) > 0, iconSize: 85, alignment: const Alignment(0, -0.18), isActiveMode: _activeJokerType == _jokerTypes[1], onTap: () => _onJokerTap(_jokerTypes[1])),
+                child: _JokerBtn(assetPath: _jokerAssets[1], quantity: jokerState.getQuantity(_jokerTypes[1]), active: jokerState.getQuantity(_jokerTypes[1]) > 0, iconSize: 85, alignment: const Alignment(0, -0.18), isActiveMode: _activeJokerType == _jokerTypes[1], onPointerDown: () => ref.read(audioProvider.notifier).playSound(SoundType.jokerSelect), onTap: () => _onJokerTap(_jokerTypes[1])),
               ),
               // Joker — Lolipop
               Positioned(
@@ -920,7 +989,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.34,
                 right: size.width * 0.51,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[2], quantity: jokerState.getQuantity(_jokerTypes[2]), active: jokerState.getQuantity(_jokerTypes[2]) > 0, iconSize: 80, alignment: const Alignment(0.00, -0.28), isActiveMode: _activeJokerType == _jokerTypes[2], onTap: () => _onJokerTap(_jokerTypes[2])),
+                child: _JokerBtn(assetPath: _jokerAssets[2], quantity: jokerState.getQuantity(_jokerTypes[2]), active: jokerState.getQuantity(_jokerTypes[2]) > 0, iconSize: 80, alignment: const Alignment(0.00, -0.28), isActiveMode: _activeJokerType == _jokerTypes[2], onPointerDown: () => ref.read(audioProvider.notifier).playSound(SoundType.jokerSelect), onTap: () => _onJokerTap(_jokerTypes[2])),
               ),
               // Joker — Değiştir
               Positioned(
@@ -928,7 +997,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.50,
                 right: size.width * 0.35,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[3], quantity: jokerState.getQuantity(_jokerTypes[3]), active: jokerState.getQuantity(_jokerTypes[3]) > 0, iconSize: 77, alignment: const Alignment(0.3, -0.2), isActiveMode: _activeJokerType == _jokerTypes[3], onTap: () => _onJokerTap(_jokerTypes[3])),
+                child: _JokerBtn(assetPath: _jokerAssets[3], quantity: jokerState.getQuantity(_jokerTypes[3]), active: jokerState.getQuantity(_jokerTypes[3]) > 0, iconSize: 77, alignment: const Alignment(0.3, -0.2), isActiveMode: _activeJokerType == _jokerTypes[3], onPointerDown: () => ref.read(audioProvider.notifier).playSound(SoundType.jokerSelect), onTap: () => _onJokerTap(_jokerTypes[3])),
               ),
               // Joker — Karıştır
               Positioned(
@@ -936,7 +1005,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.658,
                 right: size.width * 0.19,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[4], quantity: jokerState.getQuantity(_jokerTypes[4]), active: jokerState.getQuantity(_jokerTypes[4]) > 0, iconSize: 40, alignment: Alignment.center, isActiveMode: _activeJokerType == _jokerTypes[4], onTap: () => _onJokerTap(_jokerTypes[4])),
+                child: _JokerBtn(assetPath: _jokerAssets[4], quantity: jokerState.getQuantity(_jokerTypes[4]), active: jokerState.getQuantity(_jokerTypes[4]) > 0, iconSize: 40, alignment: Alignment.center, isActiveMode: _activeJokerType == _jokerTypes[4], onPointerDown: () => ref.read(audioProvider.notifier).playSound(SoundType.jokerSelect), onTap: () => _onJokerTap(_jokerTypes[4])),
               ),
               // Joker — Parti
               Positioned(
@@ -944,7 +1013,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.817,
                 right: size.width * 0.03,
                 height: size.width * 0.105,
-                child: _JokerBtn(assetPath: _jokerAssets[5], quantity: jokerState.getQuantity(_jokerTypes[5]), active: jokerState.getQuantity(_jokerTypes[5]) > 0, iconSize: 100, alignment: const Alignment(0.3, -0.45), isActiveMode: _activeJokerType == _jokerTypes[5], onTap: () => _onJokerTap(_jokerTypes[5])),
+                child: _JokerBtn(assetPath: _jokerAssets[5], quantity: jokerState.getQuantity(_jokerTypes[5]), active: jokerState.getQuantity(_jokerTypes[5]) > 0, iconSize: 100, alignment: const Alignment(0.3, -0.45), isActiveMode: _activeJokerType == _jokerTypes[5], onPointerDown: () => ref.read(audioProvider.notifier).playSound(SoundType.jokerSelect), onTap: () => _onJokerTap(_jokerTypes[5])),
               ),
 
               // Mevcut kelime
@@ -977,7 +1046,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
               // Joker mode indicator
               if (_activeJokerType != null)
                 Positioned(
-                  top: size.height * 0.27,
+                  top: size.height * 0.215,
                   left: 0,
                   right: 0,
                   child: Center(
@@ -1006,6 +1075,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 left: size.width * 0.04,
                 child: Press3DButton(
                   onTap: _showExitDialog,
+                  soundType: SoundType.uiTap,
                   height: 34,
                   width: 34,
                   color: const Color(0xFFF5EFE0),
@@ -1028,6 +1098,40 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       ),
                     ),
                   ),
+                ),
+              ),
+
+              // Müzik aç/kapat butonu — çıkış butonunun yanında
+              Positioned(
+                top: size.height * 0.225,
+                left: size.width * 0.04 + 42,
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final isBgmEnabled = ref.watch(audioProvider).isBgmEnabled;
+                    return Press3DButton(
+                      onTap: () => ref.read(audioProvider.notifier).toggleBgm(),
+                      soundType: SoundType.uiTap,
+                      height: 34,
+                      width: 34,
+                      color: const Color(0xFFF5EFE0),
+                      depthColor: const Color(0xFF8B7355),
+                      depth: 4,
+                      rightDepth: 3,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5EFE0),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.black87, width: 1.5),
+                        ),
+                        child: Icon(
+                          isBgmEnabled ? Icons.music_note : Icons.music_off,
+                          color: Colors.black87,
+                          size: 20,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
 
@@ -1117,8 +1221,14 @@ class _GridWidget extends StatefulWidget {
   final List<(int, int)> jokerAffectedPositions;
   final Offset? lollipopSlamPos;
   final double lollipopSlamSize;
+  /// Wheel joker önizleme: etkilenecek satır+sütun hücreleri — kırmızı vurgulu gösterilir.
+  final List<(int, int)> wheelPreviewPositions;
+  /// Fish joker önizleme: silinecek hücreler — mavi vurgulu gösterilir.
+  final List<(int, int)> fishPreviewPositions;
   /// Swap joker'ın ilk seçilen hücresi — turuncu vurgulu gösterilir.
   final Cell? jokerFirstCell;
+  /// Swap joker'ın ikinci seçilen hücresi — turuncu vurgulu gösterilir.
+  final Cell? jokerSecondCell;
   /// Joker animasyonu için lottie asset yolu.
   /// null → eski turuncu flash, değer var → Lottie oynatılır.
   final String? jokerAnimationAsset;
@@ -1128,6 +1238,8 @@ class _GridWidget extends StatefulWidget {
   final bool jokerIsParty;
   final bool jokerIsWheel;
   final double jokerFullGridOffsetY;
+  final VoidCallback? onLottieLoaded;
+  final bool loopLottie;
 
   const _GridWidget({
     required this.gridState,
@@ -1136,7 +1248,10 @@ class _GridWidget extends StatefulWidget {
     this.jokerAffectedPositions = const [],
     this.lollipopSlamPos,
     this.lollipopSlamSize = 0,
+    this.wheelPreviewPositions = const [],
+    this.fishPreviewPositions = const [],
     this.jokerFirstCell,
+    this.jokerSecondCell,
     this.jokerAnimationAsset,
     this.jokerAnimationScale = 1.0,
     this.jokerSwapCenter,
@@ -1144,6 +1259,8 @@ class _GridWidget extends StatefulWidget {
     this.jokerIsParty = false,
     this.jokerIsWheel = false,
     this.jokerFullGridOffsetY = 0.0,
+    this.loopLottie = false,
+    this.onLottieLoaded,
   });
 
   @override
@@ -1219,9 +1336,12 @@ class _GridWidgetState extends State<_GridWidget> with TickerProviderStateMixin 
                   isSelected: selected.contains(cell),
                   selectionIndex: selected.contains(cell) ? selected.indexOf(cell) : -1,
                   totalSelected: selected.length,
-                  isJokerTarget: widget.jokerFirstCell != null &&
+                  isJokerTarget: (widget.jokerFirstCell != null &&
                       widget.jokerFirstCell!.row == cell.row &&
-                      widget.jokerFirstCell!.col == cell.col,
+                      widget.jokerFirstCell!.col == cell.col) ||
+                      (widget.jokerSecondCell != null &&
+                      widget.jokerSecondCell!.row == cell.row &&
+                      widget.jokerSecondCell!.col == cell.col),
                 ),
               ),
 
@@ -1276,6 +1396,54 @@ class _GridWidgetState extends State<_GridWidget> with TickerProviderStateMixin 
                 ),
               ),
 
+            // Fish joker önizleme: silinecek hücreler mavi vurgu
+            for (final pos in widget.fishPreviewPositions)
+              Positioned(
+                left: pos.$2 * cellSize,
+                top: pos.$1 * cellSize,
+                width: cellSize,
+                height: cellSize,
+                child: IgnorePointer(
+                  child: TweenAnimationBuilder<double>(
+                    key: ValueKey('fish_preview_${pos.$1}_${pos.$2}'),
+                    tween: Tween(begin: 0.0, end: 0.35),
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeIn,
+                    builder: (context, opacity, _) => Container(
+                      margin: const EdgeInsets.all(1),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withAlpha((opacity * 255).round()),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            // Wheel joker önizleme: etkilenecek satır+sütun kırmızı vurgu
+            for (final pos in widget.wheelPreviewPositions)
+              Positioned(
+                left: pos.$2 * cellSize,
+                top: pos.$1 * cellSize,
+                width: cellSize,
+                height: cellSize,
+                child: IgnorePointer(
+                  child: TweenAnimationBuilder<double>(
+                    key: ValueKey('wheel_preview_${pos.$1}_${pos.$2}'),
+                    tween: Tween(begin: 0.0, end: 0.55),
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeIn,
+                    builder: (context, opacity, _) => Container(
+                      margin: const EdgeInsets.all(1),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withAlpha((opacity * 255).round()),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
             // Joker etki alanı animasyonu
             for (final pos in widget.jokerAffectedPositions)
               Positioned(
@@ -1296,9 +1464,13 @@ class _GridWidgetState extends State<_GridWidget> with TickerProviderStateMixin 
                             controller: _lottieController,
                             onLoaded: (composition) {
                               if (_lottieController?.isDismissed ?? false) {
-                                _lottieController
-                                  ?..duration = composition.duration * 2
-                                  ..forward(from: 0);
+                                _lottieController?.duration = composition.duration;
+                                if (widget.loopLottie) {
+                                  _lottieController?.repeat();
+                                } else {
+                                  _lottieController?.forward(from: 0);
+                                }
+                                widget.onLottieLoaded?.call();
                               }
                             },
                             fit: BoxFit.contain,
@@ -1381,9 +1553,10 @@ class _GridWidgetState extends State<_GridWidget> with TickerProviderStateMixin 
                     controller: _lottieController,
                     onLoaded: (composition) {
                       if (_lottieController?.isDismissed ?? false) {
-                        _lottieController
-                          ?..duration = composition.duration
-                          ..forward(from: 0);
+                        _lottieController?.duration = composition.duration;
+                        widget.loopLottie
+                            ? _lottieController?.repeat()
+                            : _lottieController?.forward(from: 0);
                       }
                     },
                     fit: BoxFit.fill,
@@ -1410,9 +1583,10 @@ class _GridWidgetState extends State<_GridWidget> with TickerProviderStateMixin 
                       controller: _lottieController,
                       onLoaded: (composition) {
                         if (_lottieController?.isDismissed ?? false) {
-                          _lottieController
-                            ?..duration = composition.duration
-                            ..forward(from: 0);
+                          _lottieController?.duration = composition.duration;
+                          widget.loopLottie
+                              ? _lottieController?.repeat()
+                              : _lottieController?.forward(from: 0);
                         }
                       },
                       fit: BoxFit.fill,
@@ -1437,9 +1611,10 @@ class _GridWidgetState extends State<_GridWidget> with TickerProviderStateMixin 
                         key: const ValueKey('joker_full_grid'),
                         controller: _lottieController,
                         onLoaded: (composition) {
-                          _lottieController
-                            ?..duration = composition.duration * 0.5
-                            ..forward(from: 0);
+                          _lottieController?.duration = composition.duration;
+                          widget.loopLottie
+                              ? _lottieController?.repeat()
+                              : _lottieController?.forward(from: 0);
                         },
                         fit: BoxFit.contain,
                         alignment: Alignment.center,
@@ -1674,6 +1849,7 @@ class _JokerBtn extends StatefulWidget {
   final double? iconSize;
   final Alignment alignment;
   final VoidCallback? onTap;
+  final VoidCallback? onPointerDown;
   final bool isActiveMode;
 
   const _JokerBtn({
@@ -1683,6 +1859,7 @@ class _JokerBtn extends StatefulWidget {
     this.iconSize,
     this.alignment = Alignment.center,
     this.onTap,
+    this.onPointerDown,
     this.isActiveMode = false,
   });
 
@@ -1752,7 +1929,10 @@ class _JokerBtnState extends State<_JokerBtn> {
       clipBehavior: Clip.none,
       children: [
         Listener(
-          onPointerDown: (_) => setState(() => _localPressed = true),
+          onPointerDown: (_) {
+            setState(() => _localPressed = true);
+            widget.onPointerDown?.call();
+          },
           onPointerUp: (_) => setState(() => _localPressed = false),
           onPointerCancel: (_) => setState(() => _localPressed = false),
           child: LayoutBuilder(
@@ -1766,6 +1946,7 @@ class _JokerBtnState extends State<_JokerBtn> {
               rightDepth: 5,
               borderRadius: BorderRadius.circular(19),
               forcePressed: widget.isActiveMode,
+              playSoundOnTap: false,
               child: _buildFaceContainer(),
             ),
           ),
@@ -1924,3 +2105,323 @@ class _ComboPopupState extends State<_ComboPopup>
 }
 
 
+
+// ─────────────────────────────────────────────────────────
+// GAME OVER CARD
+// ─────────────────────────────────────────────────────────
+class _GameOverCard extends StatefulWidget {
+  final int finalScore;
+  final int goldEarned;
+  final int wordCount;
+  final String longestWord;
+  final String duration;
+  final VoidCallback onHome;
+
+  const _GameOverCard({
+    required this.finalScore,
+    required this.goldEarned,
+    required this.wordCount,
+    required this.longestWord,
+    required this.duration,
+    required this.onHome,
+  });
+
+  @override
+  State<_GameOverCard> createState() => _GameOverCardState();
+}
+
+class _GameOverCardState extends State<_GameOverCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _fadeIn;
+  late Animation<double> _slideUp;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 520),
+    );
+    _fadeIn = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _slideUp = Tween<double>(begin: 40, end: 0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
+    );
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, child) => Opacity(
+        opacity: _fadeIn.value,
+        child: Transform.translate(offset: Offset(0, _slideUp.value), child: child),
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // ── ana kağıt kart ──
+          Container(
+            margin: const EdgeInsets.only(top: 22),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5EFE0),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFF2A1E0F), width: 2.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(200),
+                  blurRadius: 20,
+                  offset: const Offset(4, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 28),
+
+                // ── skor kutusu (SKOR/HAMLE kutularıyla aynı stil) ──
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEDE5CE),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF2A1E0F), width: 2),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'TOPLAM PUAN',
+                          style: TextStyle(
+                            fontFamily: 'Courier',
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF7A6B52),
+                            letterSpacing: 2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${widget.finalScore}',
+                          style: const TextStyle(
+                            fontFamily: 'Courier',
+                            fontSize: 48,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF1A1008),
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // ── altın kazanımı ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEDE5CE),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF2A1E0F), width: 1.5),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.monetization_on_rounded,
+                          color: widget.goldEarned > 0
+                              ? const Color(0xFFD4A017)
+                              : const Color(0xFF7A6B52),
+                          size: 22,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          widget.goldEarned > 0
+                              ? '+ ${widget.goldEarned} ALTIN KAZANDIN'
+                              : '0 ALTIN KAZANILDI',
+                          style: TextStyle(
+                            fontFamily: 'Courier',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            color: widget.goldEarned > 0
+                                ? const Color(0xFF3D2E1A)
+                                : const Color(0xFF7A6B52),
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // ── 3 istatistik kutusu ──
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      _GoStatBox(
+                        label: 'KELIME',
+                        value: '${widget.wordCount}',
+                      ),
+                      const SizedBox(width: 8),
+                      _GoStatBox(
+                        label: 'SÜRE',
+                        value: widget.duration,
+                      ),
+                      const SizedBox(width: 8),
+                      _GoStatBox(
+                        label: 'EN UZUN',
+                        value: widget.longestWord.isEmpty
+                            ? '-'
+                            : widget.longestWord.toUpperCase(),
+                        small: widget.longestWord.length > 5,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── Ana Menü butonu (oyunun kırmızı arka planıyla uyumlu koyu ton) ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: GestureDetector(
+                    onTap: widget.onHome,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5C0A0A),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFF2A1E0F), width: 2),
+                        boxShadow: [
+                          const BoxShadow(
+                            color: Color(0xFF2A0000),
+                            offset: Offset(0, 5),
+                            blurRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: const Text(
+                        'ANA MENÜ',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Courier',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFFF5EFE0),
+                          letterSpacing: 3,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── üstteki yırtık bant başlık (Stack'te öne çıkıyor) ──
+          Positioned(
+            top: 0,
+            left: 24,
+            right: 24,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5EFE0),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFF2A1E0F), width: 2.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(160),
+                    blurRadius: 8,
+                    offset: const Offset(2, 4),
+                  ),
+                ],
+              ),
+              child: const Text(
+                'OYUN BİTTİ',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Courier',
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF5C0A0A),
+                  letterSpacing: 4,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoStatBox extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool small;
+
+  const _GoStatBox({
+    required this.label,
+    required this.value,
+    this.small = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEDE5CE),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFF2A1E0F), width: 1.8),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontFamily: 'Courier',
+                fontSize: small ? 11 : 15,
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFF1A1008),
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF7A6B52),
+                letterSpacing: 1,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

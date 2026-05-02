@@ -171,9 +171,21 @@ class GridNotifier extends StateNotifier<GridState> {
     if (newPowerType != PowerType.none) {
       final lastCell = cells.last;
       powerCell = lastCell.copyWith(powerType: newPowerType, isSelected: false);
-      
+
       // Do not destroy the cell that transforms into a power tile
       queue.removeWhere((c) => c.row == lastCell.row && c.col == lastCell.col);
+
+      // If the last cell already had a power effect, inject its targets into the queue
+      // so the old power still fires even though the cell is being upgraded.
+      if (lastCell.powerType != PowerType.none) {
+        final blastTargets = powerExecutor.calculateBlastRadius(state.grid, {lastCell});
+        for (final target in blastTargets) {
+          if (target.row == lastCell.row && target.col == lastCell.col) continue;
+          if (!queue.any((c) => c.row == target.row && c.col == target.col)) {
+            queue.add(target);
+          }
+        }
+      }
     }
 
     // 2. Add existing powers in the selection to the blast radius

@@ -59830,3 +59830,5 @@ ZİYNET
 ŞİŞİRİLME
 ŞİŞİRİLMEK
 ŞİŞİRİŞ
+SİL
+BİL

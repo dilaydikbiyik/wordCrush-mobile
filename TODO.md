@@ -184,7 +184,7 @@
   - [x] Satın alma butonu + altın yeterliliği kontrolü (Flutter widget)
   - [x] Mevcut altın göstergesi (üst kısım, Flutter widget)
   - [ ] (OPSİYONEL) Karta tıklayınca detay ekranı aç (joker açıklaması + satın al butonu)
-  - [ ] (OPSİYONEL) Joker kullanım animasyonu (Lottie)
+  - [x] (OPSİYONEL) Joker kullanım animasyonu (Lottie)
 
 ## Phase 7: Özel Güçler & Jokerler ✅
 
@@ -221,7 +221,7 @@
   - [x] Combo sesi
   - [x] Özel güç aktivasyon sesi
   - [x] Oyun sonu sesi
-- [ ] UI polish:
+- [x] UI polish:
   - [x] Uygun renk paleti ve tema tasarımı
   - [x] Loading state'leri ve skeleton ekranları
   - [x] Error handling UI (hata mesajları)

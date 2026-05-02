@@ -33,33 +33,37 @@ class MarketScreen extends ConsumerWidget {
     final result = ref.read(marketProvider.notifier).purchaseJoker(jokerType);
     if (result == PurchaseResult.success) {
       ref.read(audioProvider.notifier).playSound(SoundType.spinningCoin);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
-              SizedBox(width: 8),
-              Text('Satın alındı!'),
-            ],
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Text('Satın alındı!'),
+              ],
+            ),
+            duration: Duration(seconds: 1),
+            backgroundColor: Colors.green,
           ),
-          duration: Duration(seconds: 1),
-          backgroundColor: Colors.green,
-        ),
-      );
+        );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.money_off_outlined, color: Colors.white, size: 18),
-              SizedBox(width: 8),
-              Text('Yetersiz altın!'),
-            ],
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.money_off_outlined, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Text('Yetersiz altın!'),
+              ],
+            ),
+            duration: Duration(seconds: 1),
+            backgroundColor: Colors.red,
           ),
-          duration: Duration(seconds: 1),
-          backgroundColor: Colors.red,
-        ),
-      );
+        );
     }
   }
 
