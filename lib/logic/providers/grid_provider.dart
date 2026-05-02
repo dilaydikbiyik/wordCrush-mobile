@@ -24,11 +24,15 @@ class GridState {
   /// Number of valid words that can be formed on the current grid.
   final int formableWordCount;
 
+  /// True for one frame after the grid is auto-shuffled due to no valid words.
+  final bool wasAutoShuffled;
+
   const GridState({
     required this.grid,
     this.selectedCells = const [],
     this.currentWord = '',
     this.formableWordCount = 0,
+    this.wasAutoShuffled = false,
   });
 
   GridState copyWith({
@@ -36,12 +40,14 @@ class GridState {
     List<Cell>? selectedCells,
     String? currentWord,
     int? formableWordCount,
+    bool? wasAutoShuffled,
   }) {
     return GridState(
       grid: grid ?? this.grid,
       selectedCells: selectedCells ?? this.selectedCells,
       currentWord: currentWord ?? this.currentWord,
       formableWordCount: formableWordCount ?? this.formableWordCount,
+      wasAutoShuffled: wasAutoShuffled ?? false, // her copyWith'te resetlenir
     );
   }
 }
@@ -225,8 +231,8 @@ class GridNotifier extends StateNotifier<GridState> {
         selectedCells: [],
         currentWord: '',
         formableWordCount: result.wordCount,
+        wasAutoShuffled: true, // animasyonu tetikle
       );
-      // Verify the fixed grid is truly solvable (guard against bad shuffle).
       if (!isRetry) await scanAsync(trie, isRetry: true);
     } else {
       state = state.copyWith(formableWordCount: result.wordCount);

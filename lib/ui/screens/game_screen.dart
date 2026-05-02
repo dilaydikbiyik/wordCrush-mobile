@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/char_normalizer.dart';
@@ -65,6 +68,13 @@ class _GameScreenState extends ConsumerState<GameScreen>
   // Animation states
   List<Cell> _explodingCells = [];
   List<(int, int)> _jokerAffectedPositions = [];
+  String? _jokerAnimationAsset;
+  double _jokerAnimationScale = 1.0;
+  Offset? _jokerSwapCenter;
+  bool _jokerIsFullGrid = false;
+  bool _jokerIsParty = false;
+  bool _jokerIsWheel = false;
+  double _jokerFullGridOffsetY = 0.0;
   Offset? _lollipopSlamPos;
   double _lollipopSlamSize = 0;
   double _gridScale = 1.0;
@@ -291,6 +301,25 @@ class _GameScreenState extends ConsumerState<GameScreen>
     _shakeController.forward(from: 0);
   }
 
+  /// Grid otomatik karıştırıldığında (kelime kalmadığında) animasyon gösterir.
+  void _triggerAutoShuffleAnimation(int gridSize) {
+    setState(() {
+      _jokerAffectedPositions = [];
+      _jokerAnimationAsset  = 'assets/animations/joker_shuffle_grid2.json';
+      _jokerAnimationScale  = gridSize / 2.0;
+      _jokerSwapCenter      = Offset(gridSize / 2.0, gridSize / 2.0);
+      _jokerIsFullGrid      = true;
+      _jokerFullGridOffsetY = 7.0;
+    });
+    Future.delayed(const Duration(milliseconds: 2500), () {
+      if (mounted) setState(() {
+        _jokerAnimationAsset  = null;
+        _jokerIsFullGrid      = false;
+        _jokerFullGridOffsetY = 0.0;
+      });
+    });
+  }
+
   /// Runs solvability check in background isolate.
   /// Updates formable word count and auto-shuffles if grid has no valid words.
   void _runSolvabilityCheck() {
@@ -405,16 +434,100 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
     // Direkt etkilenen hücre pozisyonlarını joker tipine göre hesapla
     final affected = _jokerDirectPositions(jokerType, grid, newGrid, target, second);
-    setState(() => _jokerAffectedPositions = affected);
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) setState(() => _jokerAffectedPositions = []);
+
+    // Her joker türü için lottie asset ata
+    final animAsset = switch (jokerType) {
+      JokerType.fish     => 'assets/animations/joker_bubble.json',
+      JokerType.wheel    => 'assets/animations/joker_sweep_wave.json',
+      JokerType.lollipop => 'assets/animations/joker_pop.json',
+      JokerType.swap     => 'assets/animations/joker_swap.json',
+      JokerType.shuffle  => 'assets/animations/joker_shuffle_spin.json',
+      JokerType.party    => 'assets/animations/party_confetti1.json',
+      _                  => null,
+    };
+
+    // Bazı jokerler için animasyon hücre boyutundan büyük gösterilir
+    final animScale = switch (jokerType) {
+      JokerType.fish     => 3.0,
+      JokerType.lollipop => 10.0,
+      JokerType.wheel    => 4.0,
+      JokerType.swap     => 0.5,
+      JokerType.shuffle  => grid.size / 2.0, // tüm gridi kaplar
+      JokerType.party    => grid.size / 2.0, // parti de tüm grid
+      _                  => 1.0,
+    };
+
+    // Swap + Shuffle + Party için iki hücrenin / grid merkezini hesapla
+    Offset? animCenter;
+    if (jokerType == JokerType.swap && target != null && second != null) {
+      // İki hücrenin piksel merkezi
+      animCenter = Offset(
+        (target.col + second.col + 1) / 2.0,
+        (target.row + second.row + 1) / 2.0,
+      );
+    } else if (jokerType == JokerType.shuffle || jokerType == JokerType.party) {
+      // Tüm gridin merkezi
+      animCenter = Offset(
+        grid.size / 2.0,
+        grid.size / 2.0,
+      );
+    }
+
+    setState(() {
+      _jokerAffectedPositions = (jokerType == JokerType.swap ||
+              jokerType == JokerType.shuffle ||
+              jokerType == JokerType.party ||
+              jokerType == JokerType.wheel)
+          ? []
+          : affected;
+      _jokerAnimationAsset = animAsset;
+      _jokerAnimationScale = animScale;
+      _jokerSwapCenter = jokerType == JokerType.wheel && target != null
+          ? Offset(target.col + 0.5, target.row + 0.5)
+          : animCenter;
+      _jokerIsFullGrid = jokerType == JokerType.shuffle || jokerType == JokerType.party;
+      _jokerIsParty = jokerType == JokerType.party;
+      _jokerIsWheel = jokerType == JokerType.wheel;
+      // Y ekseni kaydırma: pozitif = aşağı, negatif = yukarı (px)
+      _jokerFullGridOffsetY = switch (jokerType) {
+        JokerType.shuffle => 43.0,
+        _                 => 0.0,
+      };
+    });
+    // Animasyon bitiş süresi joker tipine göre belirlenir
+    final hideDelay = switch (jokerType) {
+      JokerType.party   => const Duration(milliseconds: 2000), // konfeti tam oynasın
+      JokerType.shuffle => const Duration(milliseconds: 800),
+      _                 => const Duration(milliseconds: 800),
+    };
+    Future.delayed(hideDelay, () {
+      if (mounted) setState(() {
+        _jokerAffectedPositions = [];
+        _jokerAnimationAsset = null;
+        _jokerAnimationScale = 1.0;
+        _jokerSwapCenter = null;
+        _jokerIsFullGrid = false;
+        _jokerIsParty = false;
+        _jokerIsWheel = false;
+        _jokerFullGridOffsetY = 0.0;
+      });
     });
 
-    ref.read(gridProvider.notifier).setGrid(newGrid);
-    ref.read(audioProvider.notifier).playSound(SoundType.jokerActivation);
-    _pulseGrid();
-    _cancelJokerMode();
-    _runSolvabilityCheck();
+    // Grid değişme gecikmesi — animasyon bitmeden grid değişmesin
+    final gridDelay = switch (jokerType) {
+      JokerType.wheel   => const Duration(milliseconds: 750),
+      JokerType.shuffle => const Duration(milliseconds: 700),
+      JokerType.party   => const Duration(milliseconds: 500),
+      _                 => const Duration(milliseconds: 300),
+    };
+    Future.delayed(gridDelay, () {
+      if (!mounted) return;
+      ref.read(gridProvider.notifier).setGrid(newGrid);
+      ref.read(audioProvider.notifier).playSound(SoundType.jokerActivation);
+      _pulseGrid();
+      _cancelJokerMode();
+      _runSolvabilityCheck();
+    });
   }
 
   List<(int, int)> _jokerDirectPositions(
@@ -585,8 +698,14 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final gridState = ref.watch(gridProvider);
     final scoreState = ref.watch(scoreProvider);
     final jokerState = ref.watch(jokerProvider);
-    // #9c/d: Trie yükleme durumunu izle — loading/error UI
     final trieAsync = ref.watch(trieProvider);
+
+    // Auto-shuffle animasyonu: kelime kalmayınca grid yenilendiğinde tetiklenir
+    ref.listen<GridState>(gridProvider, (prev, next) {
+      if (next.wasAutoShuffled && !(prev?.wasAutoShuffled ?? false)) {
+        _triggerAutoShuffleAnimation(next.grid.size);
+      }
+    });
 
     return PopScope(
       canPop: false,
@@ -727,6 +846,13 @@ class _GameScreenState extends ConsumerState<GameScreen>
                             lollipopSlamPos: _lollipopSlamPos,
                             lollipopSlamSize: _lollipopSlamSize,
                             jokerFirstCell: _jokerFirstCell,
+                            jokerAnimationAsset: _jokerAnimationAsset,
+                            jokerAnimationScale: _jokerAnimationScale,
+                            jokerSwapCenter: _jokerSwapCenter,
+                            jokerIsFullGrid: _jokerIsFullGrid,
+                            jokerIsParty: _jokerIsParty,
+                            jokerIsWheel: _jokerIsWheel,
+                            jokerFullGridOffsetY: _jokerFullGridOffsetY,
                           ),
                         ),
                         if (_lastScore != null && _gridOverlay != Colors.transparent)
@@ -744,6 +870,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
                             ),
                           ),
                       ],
+
                     ),
                   ),
                 ),
@@ -972,6 +1099,15 @@ class _GridWidget extends StatefulWidget {
   final double lollipopSlamSize;
   /// Swap joker'ın ilk seçilen hücresi — turuncu vurgulu gösterilir.
   final Cell? jokerFirstCell;
+  /// Joker animasyonu için lottie asset yolu.
+  /// null → eski turuncu flash, değer var → Lottie oynatılır.
+  final String? jokerAnimationAsset;
+  final double jokerAnimationScale;
+  final Offset? jokerSwapCenter;
+  final bool jokerIsFullGrid;
+  final bool jokerIsParty;
+  final bool jokerIsWheel;
+  final double jokerFullGridOffsetY;
 
   const _GridWidget({
     required this.gridState,
@@ -981,19 +1117,39 @@ class _GridWidget extends StatefulWidget {
     this.lollipopSlamPos,
     this.lollipopSlamSize = 0,
     this.jokerFirstCell,
+    this.jokerAnimationAsset,
+    this.jokerAnimationScale = 1.0,
+    this.jokerSwapCenter,
+    this.jokerIsFullGrid = false,
+    this.jokerIsParty = false,
+    this.jokerIsWheel = false,
+    this.jokerFullGridOffsetY = 0.0,
   });
 
   @override
   State<_GridWidget> createState() => _GridWidgetState();
 }
 
-class _GridWidgetState extends State<_GridWidget> {
-  // Maps cell.id → displayed row (used to start new cells above the grid).
+class _GridWidgetState extends State<_GridWidget> with TickerProviderStateMixin {
   final Map<int, int> _displayRows = {};
+  AnimationController? _lottieController;
+  int _partyLoadedCount = 0; // kaç party Lottie instance'ı yüklendi
 
   @override
   void didUpdateWidget(_GridWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    // Joker animasyonu değişti — yeni controller başlat
+    if (widget.jokerAnimationAsset != oldWidget.jokerAnimationAsset) {
+      _lottieController?.stop();
+      _lottieController?.dispose();
+      _partyLoadedCount = 0; // sayacı sıfırla
+      if (widget.jokerAnimationAsset != null) {
+        _lottieController = AnimationController(vsync: this);
+      } else {
+        _lottieController = null;
+      }
+    }
 
     final oldIds =
         oldWidget.gridState.grid.allCells.map((c) => c.id).toSet();
@@ -1102,26 +1258,204 @@ class _GridWidgetState extends State<_GridWidget> {
                 ),
               ),
 
-            // Joker etki alanı turuncu flash
+            // Joker etki alanı animasyonu
             for (final pos in widget.jokerAffectedPositions)
               Positioned(
                 left: pos.$2 * cellSize,
                 top: pos.$1 * cellSize,
                 width: cellSize,
                 height: cellSize,
-                child: TweenAnimationBuilder<double>(
-                  key: ValueKey('joker_flash_${pos.$1}_${pos.$2}'),
-                  tween: Tween(begin: 1.0, end: 0.0),
-                  duration: const Duration(milliseconds: 450),
-                  curve: Curves.easeOut,
-                  builder: (context, opacity, _) => IgnorePointer(
-                    child: Container(
-                      margin: const EdgeInsets.all(1),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withAlpha((opacity * 180).round()),
-                        borderRadius: BorderRadius.circular(4),
+                child: IgnorePointer(
+                  child: widget.jokerAnimationAsset != null
+                      // ── Lottie animasyonu ──────────────────────────────
+                      ? OverflowBox(
+                          maxWidth: cellSize * widget.jokerAnimationScale,
+                          maxHeight: cellSize * widget.jokerAnimationScale,
+                          alignment: Alignment.center,
+                          child: Lottie.asset(
+                            widget.jokerAnimationAsset!,
+                            key: ValueKey('joker_lottie_${pos.$1}_${pos.$2}'),
+                            controller: _lottieController,
+                            onLoaded: (composition) {
+                              if (_lottieController?.isDismissed ?? false) {
+                                _lottieController
+                                  ?..duration = composition.duration * 2
+                                  ..forward(from: 0);
+                              }
+                            },
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stack) {
+                              debugPrint('⚠️ Lottie yüklenemedi: ${widget.jokerAnimationAsset} → $error');
+                              return TweenAnimationBuilder<double>(
+                                tween: Tween(begin: 1.0, end: 0.0),
+                                duration: const Duration(milliseconds: 450),
+                                curve: Curves.easeOut,
+                                builder: (context, opacity, _) => Container(
+                                  margin: const EdgeInsets.all(1),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withAlpha((opacity * 180).round()),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      // ── Eski turuncu flash (fallback) ─────────────────
+                      : TweenAnimationBuilder<double>(
+                          key: ValueKey('joker_flash_${pos.$1}_${pos.$2}'),
+                          tween: Tween(begin: 1.0, end: 0.0),
+                          duration: const Duration(milliseconds: 450),
+                          curve: Curves.easeOut,
+                          builder: (context, opacity, _) => Container(
+                            margin: const EdgeInsets.all(1),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withAlpha((opacity * 180).round()),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+
+            // Swap jokeri: iki hücrenin ortasında tek konumlu animasyon
+            if (widget.jokerSwapCenter != null &&
+                widget.jokerAnimationAsset != null &&
+                !widget.jokerIsFullGrid &&
+                !widget.jokerIsWheel)
+              Positioned(
+                left: widget.jokerSwapCenter!.dx * cellSize - (cellSize * widget.jokerAnimationScale),
+                top:  widget.jokerSwapCenter!.dy * cellSize - (cellSize * widget.jokerAnimationScale),
+                width:  cellSize * widget.jokerAnimationScale * 2,
+                height: cellSize * widget.jokerAnimationScale * 2,
+                child: IgnorePointer(
+                  child: Lottie.asset(
+                    widget.jokerAnimationAsset!,
+                    key: const ValueKey('joker_swap_center'),
+                    controller: _lottieController,
+                    onLoaded: (composition) {
+                      _lottieController
+                        ?..duration = composition.duration * 2
+                        ..forward(from: 0);
+                    },
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stack) {
+                      debugPrint('⚠️ Swap Lottie yüklenemedi: $error');
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ),
+              ),
+
+            // Wheel — yatay: tıklanan hücrenin satırını tam kapsar
+            if (widget.jokerSwapCenter != null &&
+                widget.jokerAnimationAsset != null &&
+                widget.jokerIsWheel)
+              Positioned(
+                left: 0,
+                top: widget.jokerSwapCenter!.dy * cellSize - cellSize * 1.25,
+                width: widget.gridState.grid.size * cellSize,
+                height: cellSize * 2.5,
+                child: IgnorePointer(
+                  child: Lottie.asset(
+                    widget.jokerAnimationAsset!,
+                    key: const ValueKey('wheel_horizontal'),
+                    controller: _lottieController,
+                    onLoaded: (composition) {
+                      if (_lottieController?.isDismissed ?? false) {
+                        _lottieController
+                          ?..duration = composition.duration
+                          ..forward(from: 0);
+                      }
+                    },
+                    fit: BoxFit.fill,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+
+            // Wheel — dikey: tıklanan hücrenin sütununu tam kapsar (90° döndürülmüş)
+            if (widget.jokerSwapCenter != null &&
+                widget.jokerAnimationAsset != null &&
+                widget.jokerIsWheel)
+              Positioned(
+                left: widget.jokerSwapCenter!.dx * cellSize - cellSize * 1.25,
+                top: 0,
+                width: cellSize * 2.5,
+                height: widget.gridState.grid.size * cellSize,
+                child: IgnorePointer(
+                  child: RotatedBox(
+                    quarterTurns: 1,
+                    child: Lottie.asset(
+                      widget.jokerAnimationAsset!,
+                      key: const ValueKey('wheel_vertical'),
+                      controller: _lottieController,
+                      onLoaded: (composition) {
+                        if (_lottieController?.isDismissed ?? false) {
+                          _lottieController
+                            ?..duration = composition.duration
+                            ..forward(from: 0);
+                        }
+                      },
+                      fit: BoxFit.fill,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+              ),
+
+            // Shuffle: tek büyük merkez animasyonu + arkaplan
+            if (widget.jokerAnimationAsset != null &&
+                widget.jokerIsFullGrid &&
+                !widget.jokerIsParty)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Container(
+                    color: const Color(0xFF2A1A0A).withAlpha(100),
+                    child: Transform.translate(
+                      offset: Offset(0, widget.jokerFullGridOffsetY),
+                      child: Lottie.asset(
+                        widget.jokerAnimationAsset!,
+                        key: const ValueKey('joker_full_grid'),
+                        controller: _lottieController,
+                        onLoaded: (composition) {
+                          _lottieController
+                            ?..duration = composition.duration * 0.5
+                            ..forward(from: 0);
+                        },
+                        fit: BoxFit.contain,
+                        alignment: Alignment.center,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                       ),
                     ),
+                  ),
+                ),
+              ),
+
+            // Party: 5 noktadan konfeti — her biri bağımsız
+            if (widget.jokerAnimationAsset != null && widget.jokerIsParty)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Stack(
+                    children: [
+                      for (final entry in const [
+                        (Alignment.topLeft,     'tl'),
+                        (Alignment.topRight,    'tr'),
+                        (Alignment.bottomLeft,  'bl'),
+                        (Alignment.bottomRight, 'br'),
+                        (Alignment.center,      'c'),
+                      ])
+                        Positioned.fill(
+                          child: Lottie.asset(
+                            widget.jokerAnimationAsset!,
+                            key: ValueKey('party_${entry.$2}'),
+                            animate: true,
+                            repeat: false,
+                            fit: BoxFit.cover,
+                            alignment: entry.$1,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),

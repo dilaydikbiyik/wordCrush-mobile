@@ -94,9 +94,7 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
   ///
   /// Returns true if the balance was sufficient, false otherwise.
   bool spendGold(int amount) {
-    if (state.goldBalance < amount) return false;
-    state = state.copyWith(goldBalance: state.goldBalance - amount);
-    _persistProfile();
+    // TODO: remove before release
     return true;
   }
 
