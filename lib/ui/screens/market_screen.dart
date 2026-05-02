@@ -12,18 +12,26 @@ class MarketScreen extends ConsumerWidget {
   const MarketScreen({super.key});
 
   static const _jokers = [
-    (JokerType.fish, 'Balık', AppConstants.fishPrice),
-    (JokerType.wheel, 'Tekerlek', AppConstants.wheelPrice),
-    (JokerType.lollipop, 'Lolipop', AppConstants.lollipopPrice),
-    (JokerType.swap, 'Değiştir', AppConstants.swapPrice),
-    (JokerType.shuffle, 'Karıştır', AppConstants.shufflePrice),
-    (JokerType.party, 'Parti', AppConstants.partyPrice),
+    (JokerType.fish, AppConstants.fishPrice),
+    (JokerType.wheel, AppConstants.wheelPrice),
+    (JokerType.lollipop, AppConstants.lollipopPrice),
+    (JokerType.swap, AppConstants.swapPrice),
+    (JokerType.shuffle, AppConstants.shufflePrice),
+    (JokerType.party, AppConstants.partyPrice),
+  ];
+
+  static const _cardAssets = [
+    'assets/images/btn_joker_fish.png',
+    'assets/images/btn_joker_wheel.png',
+    'assets/images/btn_joker_lollipop.png',
+    'assets/images/btn_joker_swap.png',
+    'assets/images/btn_joker_shuffle.png',
+    'assets/images/btn_joker_party.png',
   ];
 
   void _purchase(BuildContext context, WidgetRef ref, String jokerType) {
     final result = ref.read(marketProvider.notifier).purchaseJoker(jokerType);
     if (result == PurchaseResult.success) {
-      // UX8: Play coin sound on successful purchase
       ref.read(audioProvider.notifier).playSound(SoundType.spinningCoin);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -61,13 +69,48 @@ class MarketScreen extends ConsumerWidget {
     final gold = ref.watch(playerProvider).goldBalance;
     final jokerState = ref.watch(jokerProvider);
 
-    const buttonLayout = [
-      (0.17, 0.08, 0.53, 236.0, 0.8),
-      (0.17, 0.52, 0.099, 236.0, 0.8),
-      (0.45, 0.09, 0.53, 236.0, 0.83),
-      (0.45, 0.52, 0.099, 236.0, 0.83),
-      (0.73, 0.09, 0.53, 229.0, 0.8),
-      (0.73, 0.52, 0.099, 229.0, 0.8),
+    // top, left, right, height
+    const cardLayout = [
+      (0.17, 0.08, 0.53, 236.0),
+      (0.17, 0.52, 0.099, 236.0),
+      (0.45, 0.09, 0.53, 236.0),
+      (0.45, 0.52, 0.099, 236.0),
+      (0.73, 0.09, 0.53, 229.0),
+      (0.73, 0.52, 0.099, 229.0),
+    ];
+
+    // dx, dy — her kart için bağımsız ince ayar (piksel)
+    // pozitif dx → sağa, negatif → sola
+    // pozitif dy → aşağı, negatif → yukarı
+    const cardOffsets = [
+      (-15.0, 1.0), // fish
+      (-5.0, -2.0), // wheel
+      (-18.0, 0.0), // lollipop
+      (-5.0, 7.0), // swap
+      (-6.0, 0.0), // shuffle
+      (-8.0, 1.0), // party
+    ];
+
+    // null → varsayılan 230 yükseklik kullanılır
+    // width null → orantılı genişlik (doğal oran korunur)
+    const cardSizes = [
+      (237.0, null), // fish    — height, width
+      (239.0, null), // wheel
+      (238.0, null), // lollipop
+      (230.0, null), // swap
+      (null, null), // shuffle
+      (null, null), // party
+    ];
+
+    // rozet konumu — bottom, right (piksel)
+    // kartın sağ alt köşesine göre ayarla
+    const badgeOffsets = [
+      (198.0, 12.0), // fish
+      (196.0, 24.0), // wheel
+      (198.0, 12.0), // lollipop
+      (198.0, 12.0), // swap
+      (191.0, 12.0), // shuffle
+      (192.0, 30.0), // party
     ];
 
     return Scaffold(
@@ -97,19 +140,21 @@ class MarketScreen extends ConsumerWidget {
               ),
             ),
 
-            // 6 joker satın al butonu
+            // 6 joker kartı
             for (int i = 0; i < _jokers.length; i++)
               Positioned(
-                top: size.height * buttonLayout[i].$1,
-                left: size.width * buttonLayout[i].$2,
-                right: size.width * buttonLayout[i].$3,
-                child: _JokerButton(
-                  jokerType: _jokers[i].$1,
-                  price: _jokers[i].$3,
+                top: size.height * cardLayout[i].$1,
+                left: size.width * cardLayout[i].$2,
+                child: _JokerCard(
+                  cardAsset: _cardAssets[i],
                   quantity: jokerState.getQuantity(_jokers[i].$1),
-                  canAfford: gold >= _jokers[i].$3,
-                  height: buttonLayout[i].$4,
-                  alignmentY: buttonLayout[i].$5,
+                  canAfford: gold >= _jokers[i].$2,
+                  offsetDx: cardOffsets[i].$1,
+                  offsetDy: cardOffsets[i].$2,
+                  cardHeight: cardSizes[i].$1,
+                  cardWidth: cardSizes[i].$2,
+                  badgeBottom: badgeOffsets[i].$1,
+                  badgeRight: badgeOffsets[i].$2,
                   onTap: () => _purchase(context, ref, _jokers[i].$1),
                 ),
               ),
@@ -120,65 +165,88 @@ class MarketScreen extends ConsumerWidget {
   }
 }
 
-class _JokerButton extends StatelessWidget {
-  final String jokerType;
-  final int price;
+class _JokerCard extends StatefulWidget {
+  final String cardAsset;
   final int quantity;
   final bool canAfford;
-  final double height;
-  final double alignmentY;
+  final double offsetDx;
+  final double offsetDy;
+  final double? cardHeight;
+  final double? cardWidth;
+  final double badgeBottom;
+  final double badgeRight;
   final VoidCallback onTap;
 
-  const _JokerButton({
-    required this.jokerType,
-    required this.price,
+  const _JokerCard({
+    required this.cardAsset,
     required this.quantity,
     required this.canAfford,
-    required this.height,
-    required this.alignmentY,
     required this.onTap,
+    this.offsetDx = 0.0,
+    this.offsetDy = 0.0,
+    this.cardHeight,
+    this.cardWidth,
+    this.badgeBottom = 14.0,
+    this.badgeRight = 12.0,
   });
+
+  @override
+  State<_JokerCard> createState() => _JokerCardState();
+}
+
+class _JokerCardState extends State<_JokerCard> {
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: canAfford ? onTap : null,
-      child: Container(
-        height: height,
-        alignment: Alignment(0, alignmentY),
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 80),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(
+          widget.offsetDx,
+          widget.offsetDy + (_pressed ? 6.0 : 0),
+          0,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
           children: [
-            Text(
-              '$price',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: canAfford ? Colors.black87 : Colors.black38,
-              ),
+            Image.asset(
+              widget.cardAsset,
+              height: widget.cardHeight ?? 230,
+              width: widget.cardWidth,
+              color: widget.canAfford
+                  ? null
+                  : Colors.black.withValues(alpha: 0.35),
+              colorBlendMode:
+                  widget.canAfford ? null : BlendMode.darken,
             ),
-            if (quantity > 0) ...[
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.black87,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  'x$quantity',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
+            if (widget.quantity > 0)
+              Positioned(
+                bottom: widget.badgeBottom,
+                right: widget.badgeRight,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black87,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'x${widget.quantity}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
-            ],
           ],
         ),
       ),

@@ -349,6 +349,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final jokerState = ref.read(jokerProvider);
     if (!jokerState.hasJoker(jokerType)) return;
 
+    ref.read(audioProvider.notifier).playSound(SoundType.buttonTap);
+
     // If already in this joker mode, cancel
     if (_activeJokerType == jokerType) {
       _cancelJokerMode();
@@ -421,6 +423,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
   }
 
   void _executeJoker(String jokerType, Cell? target, Cell? second) {
+    ref.read(audioProvider.notifier).playSound(SoundType.jokerActivation);
     final grid = ref.read(gridProvider).grid;
     final executor = JokerExecutor();
 
@@ -454,7 +457,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final animAsset = switch (jokerType) {
       JokerType.fish     => 'assets/animations/joker_bubble.json',
       JokerType.wheel    => 'assets/animations/joker_sweep_wave.json',
-      JokerType.lollipop => 'assets/animations/joker_pop.json',
+      JokerType.lollipop => 'assets/animations/joker_pop_smoke_p.json',
       JokerType.swap     => 'assets/animations/joker_swap.json',
       JokerType.shuffle  => 'assets/animations/joker_shuffle_spin.json',
       JokerType.party    => 'assets/animations/party_confetti1.json',
@@ -464,7 +467,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
     // Bazı jokerler için animasyon hücre boyutundan büyük gösterilir
     final animScale = switch (jokerType) {
       JokerType.fish     => 3.0,
-      JokerType.lollipop => 10.0,
+      JokerType.lollipop => 3.0,
       JokerType.wheel    => 4.0,
       JokerType.swap     => 0.5,
       JokerType.shuffle  => grid.size / 2.0, // tüm gridi kaplar

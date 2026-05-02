@@ -89,7 +89,7 @@ class AudioNotifier extends StateNotifier<AudioState> {
       final idx = _poolIndexes[type]!;
       final player = pool[idx];
 
-      await player.seek(Duration.zero);
+      player.seek(Duration.zero);
       await player.resume();
 
       _poolIndexes[type] = (idx + 1) % _poolSize;
