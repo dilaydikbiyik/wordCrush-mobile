@@ -9,14 +9,23 @@ void main() {
 
     setUp(() {
       trie = TrieService();
-      // Insert words referenced in PROJECT_INSTRUCTIONS.md examples
       for (final w in [
+        // ADANA grubu
         'ADANA', 'ANA', 'ADA', 'DANA',
+        // MASAL grubu
         'MASAL', 'MASA', 'ASA', 'SAL',
+        // SARI grubu
         'SARI', 'ARI',
-        'KAL', 'KALEM',
-        'EL', // 2-letter — should NOT appear in combo results
-        'AL',  // 2-letter — should NOT appear
+        // KALEM grubu
+        'KALEM', 'KAL', 'KALE', 'ALEM',
+        // KURAL grubu (substring vs subsequence kritik testi)
+        'KURAL', 'KUR', 'KURA',
+        // KADAR grubu
+        'KADAR', 'ADA', 'DAR',
+        // ARABA grubu
+        'ARABA', 'ARA', 'RAB', 'ABA',
+        // 2 harfli — combo sonuçlarına GİRMEMELİ
+        'EL', 'AL',
       ]) {
         trie.insert(w);
       }
@@ -81,6 +90,38 @@ void main() {
       final combos = engine.findComboWords('ADANA');
       final unique = combos.toSet();
       expect(combos.length, unique.length);
+    });
+
+    // ─── Gerçek sözlük kelimeleriyle substring testleri ─────────────────────
+
+    test('findComboWords — KALEM → {KALEM, KAL, KALE, ALEM}', () {
+      // K-A-L-E-M: substring olarak KAL(0-3), KALE(0-4), ALEM(1-5), KALEM(0-5)
+      final combos = engine.findComboWords('KALEM');
+      expect(combos, containsAll(['KALEM', 'KAL', 'KALE', 'ALEM']));
+      expect(combos.length, 4);
+    });
+
+    test('findComboWords — KURAL → {KURAL, KUR, KURA} (KAL olmamalı)', () {
+      // K-U-R-A-L: substring olarak KUR(0-3), KURA(0-4), KURAL(0-5)
+      // KAL sözlükte var ama K→A→L ardışık değil (0,3,4) — subsequence, substring DEĞİL
+      final combos = engine.findComboWords('KURAL');
+      expect(combos, containsAll(['KURAL', 'KUR', 'KURA']));
+      expect(combos, isNot(contains('KAL')));
+      expect(combos.length, 3);
+    });
+
+    test('findComboWords — KADAR → {KADAR, ADA, DAR}', () {
+      // K-A-D-A-R: substring olarak ADA(1-4), DAR(2-5), KADAR(0-5)
+      final combos = engine.findComboWords('KADAR');
+      expect(combos, containsAll(['KADAR', 'ADA', 'DAR']));
+      expect(combos.length, 3);
+    });
+
+    test('findComboWords — ARABA → {ARABA, ARA, RAB, ABA}', () {
+      // A-R-A-B-A: substring olarak ARA(0-3), RAB(1-4), ABA(2-5), ARABA(0-5)
+      final combos = engine.findComboWords('ARABA');
+      expect(combos, containsAll(['ARABA', 'ARA', 'RAB', 'ABA']));
+      expect(combos.length, 4);
     });
 
     // ─── Edge cases ──────────────────────────────────────────────────────────
